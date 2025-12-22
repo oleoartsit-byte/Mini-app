@@ -1,0 +1,953 @@
+import React, { useEffect, useState } from 'react';
+import { useTelegram, useTheme, useLocale } from './hooks';
+import { createApiService } from './services/api';
+import {
+  Header,
+  UserCard,
+  QuestCard,
+  QuestModal,
+  Loading,
+  EmptyState,
+  CheckInCard,
+  Toast,
+  InviteCard,
+  BottomNav,
+  RewardsPage,
+  ProfilePage,
+  HomePageSkeleton,
+  QuestsPageSkeleton,
+  PageTransition,
+  StaggeredList,
+  AnimatedButton,
+  SuccessAnimation,
+  PullToRefresh,
+  QuestFilter,
+  Leaderboard,
+  TransactionHistory,
+  WithdrawModal,
+} from './components';
+import { TwitterBindModal } from './components/TwitterBindModal';
+import { globalStyles, baseStyles } from './styles/globalStyles';
+
+// 邀请奖励
+const INVITE_REWARD = 10;
+
+// Bot 用户名
+const BOT_USERNAME = 'questwall_test_bot';
+
+export function App() {
+  const { tg, user, initData } = useTelegram();
+  const [quests, setQuests] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [activeQuest, setActiveQuest] = useState(null);
+  const [authToken, setAuthToken] = useState(null);
+  const [authStatus, setAuthStatus] = useState('pending');
+  const [activeTab, setActiveTab] = useState('home');
+  const [previousTab, setPreviousTab] = useState('home');
+  const theme = useTheme(tg);
+  const { locale, setLocale, t, locales: supportedLocales } = useLocale();
+
+  // 更新 body 背景色跟随主题
+  useEffect(() => {
+    document.body.style.backgroundColor = theme.secondaryBg;
+  }, [theme.secondaryBg]);
+
+  // 计算页面切换动画方向
+  const getTransitionType = () => {
+    const tabOrder = ['home', 'quests', 'rewards', 'profile'];
+    const currentIndex = tabOrder.indexOf(activeTab);
+    const prevIndex = tabOrder.indexOf(previousTab);
+    if (currentIndex > prevIndex) return 'slide-right';
+    if (currentIndex < prevIndex) return 'slide-left';
+    return 'fade';
+  };
+
+  // Tab 切换处理
+  const handleTabChange = (newTab) => {
+    setPreviousTab(activeTab);
+    setActiveTab(newTab);
+  };
+
+  // Toast 提示状态
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+  // 成功动画状态
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // 任务筛选状态
+  const [questFilter, setQuestFilter] = useState(null);
+  const [questSearch, setQuestSearch] = useState('');
+
+  // 刷新状态
+  const [refreshing, setRefreshing] = useState(false);
+
+  // 提现弹窗状态
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+
+  // Twitter 绑定弹窗状态
+  const [showTwitterModal, setShowTwitterModal] = useState(false);
+  const [twitterStatus, setTwitterStatus] = useState({ bound: false, twitterUsername: null });
+
+  // 显示 Toast
+  const showToast = (message, type = 'success') => {
+    setToast({ visible: true, message, type });
+  };
+
+  // 虚拟钱包状态
+  const [wallet, setWallet] = useState(() => {
+    const saved = localStorage.getItem('questwall_wallet');
+    return saved ? JSON.parse(saved) : {
+      connected: false,
+      address: null,
+      balances: { stars: 0, ton: 0, usdt: 0, points: 0 }
+    };
+  });
+
+  // 已完成任务
+  const [completedQuests, setCompletedQuests] = useState(() => {
+    const saved = localStorage.getItem('questwall_completed');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // 签到数据（从后端获取）
+  const [checkInData, setCheckInData] = useState({
+    lastCheckIn: null,
+    streak: 0,
+    todayChecked: false,
+    checkInHistory: []
+  });
+  const [checkInLoading, setCheckInLoading] = useState(false);
+
+  // 邀请数据
+  const [inviteData, setInviteData] = useState(() => {
+    const saved = localStorage.getItem('questwall_invite');
+    return saved ? JSON.parse(saved) : {
+      inviteCount: 0,
+      totalBonus: 0,
+      inviteBonus: 0,
+      commissionBonus: 0,
+      config: null,
+      invitedUsers: []
+    };
+  });
+
+  // 保存钱包状态到 localStorage
+  useEffect(() => {
+    localStorage.setItem('questwall_wallet', JSON.stringify(wallet));
+  }, [wallet]);
+
+  // 保存已完成任务到 localStorage
+  useEffect(() => {
+    localStorage.setItem('questwall_completed', JSON.stringify(completedQuests));
+  }, [completedQuests]);
+
+  // API 服务（必须在使用它的 useEffect 之前定义）
+  const api = createApiService(authToken);
+
+  // 从后端获取签到状态
+  useEffect(() => {
+    const fetchCheckInStatus = async () => {
+      if (!authToken) return;
+      setCheckInLoading(true);
+      try {
+        const status = await api.getCheckInStatus();
+        if (status) {
+          setCheckInData({
+            lastCheckIn: status.lastCheckIn,
+            streak: status.streak || 0,
+            todayChecked: status.todayChecked || false,
+            checkInHistory: status.checkInHistory || []
+          });
+        }
+      } catch (error) {
+        console.error('获取签到状态失败:', error);
+      } finally {
+        setCheckInLoading(false);
+      }
+    };
+    fetchCheckInStatus();
+  }, [authToken]);
+
+  // 从后端获取邀请状态
+  useEffect(() => {
+    const fetchInviteStatus = async () => {
+      if (!authToken) return;
+      try {
+        const status = await api.getInviteStatus();
+        if (status) {
+          setInviteData({
+            inviteCount: status.inviteCount || 0,
+            totalBonus: status.totalBonus || 0,
+            inviteBonus: status.inviteBonus || 0,
+            commissionBonus: status.commissionBonus || 0,
+            config: status.config || null,
+            invitedUsers: status.invitedUsers || []
+          });
+        }
+      } catch (error) {
+        console.error('获取邀请状态失败:', error);
+      }
+    };
+    fetchInviteStatus();
+  }, [authToken]);
+
+  // 保存邀请数据到 localStorage（作为缓存）
+  useEffect(() => {
+    localStorage.setItem('questwall_invite', JSON.stringify(inviteData));
+  }, [inviteData]);
+
+  // 获取 Twitter 绑定状态
+  useEffect(() => {
+    const fetchTwitterStatus = async () => {
+      if (!authToken) return;
+      try {
+        const status = await api.getTwitterStatus();
+        setTwitterStatus({
+          bound: status.bound || false,
+          twitterUsername: status.twitterUsername || null,
+        });
+      } catch (error) {
+        console.error('获取 Twitter 状态失败:', error);
+      }
+    };
+    fetchTwitterStatus();
+  }, [authToken]);
+
+  // 保存邀请码，等认证后处理
+  const [pendingInviteCode, setPendingInviteCode] = useState(() => {
+    // 检查 URL 参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const startParam = urlParams.get('start_param') || urlParams.get('tgWebAppStartParam');
+    if (startParam && startParam.startsWith('ref_')) {
+      return startParam;
+    }
+    return null;
+  });
+
+  // 处理邀请（需要认证后调用后端 API）
+  useEffect(() => {
+    const processInviteIfNeeded = async () => {
+      // 需要有 token 和待处理的邀请码
+      if (!authToken || !pendingInviteCode) return;
+
+      // 检查是否已经处理过
+      const processed = localStorage.getItem('questwall_invite_processed');
+      if (processed) {
+        setPendingInviteCode(null);
+        return;
+      }
+
+      try {
+        console.log('处理邀请码:', pendingInviteCode);
+        const result = await api.processInvite(pendingInviteCode);
+
+        if (result.success) {
+          // 标记已处理
+          localStorage.setItem('questwall_invite_processed', 'true');
+
+          // 显示成功提示
+          showToast(result.message || `欢迎！通过邀请链接获得 ${result.inviteeReward || INVITE_REWARD} Stars`, 'stars');
+
+          // 刷新邀请数据
+          const inviteStatus = await api.getInviteStatus();
+          if (inviteStatus) {
+            setInviteData({
+              inviteCount: inviteStatus.inviteCount || 0,
+              totalBonus: inviteStatus.totalBonus || 0,
+              inviteBonus: inviteStatus.inviteBonus || 0,
+              commissionBonus: inviteStatus.commissionBonus || 0,
+              config: inviteStatus.config || null,
+              invitedUsers: inviteStatus.invitedUsers || []
+            });
+          }
+        } else {
+          // 如果是"已被邀请过"的错误，也标记已处理
+          if (result.message?.includes('已被邀请') || result.message?.includes('已邀请')) {
+            localStorage.setItem('questwall_invite_processed', 'true');
+          }
+          console.log('邀请处理结果:', result.message);
+        }
+      } catch (error) {
+        console.error('处理邀请失败:', error);
+      }
+
+      setPendingInviteCode(null);
+    };
+
+    processInviteIfNeeded();
+  }, [authToken, pendingInviteCode]);
+
+  // Telegram 认证
+  useEffect(() => {
+    const authenticate = async () => {
+      console.log('🔐 开始认证, initData:', initData ? initData.substring(0, 50) + '...' : 'null');
+      if (initData) {
+        const result = await api.auth(initData);
+        console.log('🔐 认证结果:', result);
+        if (result.token) {
+          setAuthToken(result.token);
+          setAuthStatus('success');
+        } else {
+          console.error('🔐 认证失败:', result);
+          setAuthStatus('failed');
+        }
+      } else {
+        // 开发模式：自动调用 dev-login 获取测试 token
+        console.log('🔐 无 initData，尝试开发模式登录');
+        const devResult = await api.devLogin();
+        if (devResult.token) {
+          console.log('🔐 开发模式登录成功');
+          setAuthToken(devResult.token);
+          setAuthStatus('dev');
+        } else {
+          console.log('🔐 开发模式登录失败，无认证运行');
+          setAuthStatus('dev');
+        }
+      }
+    };
+    const timer = setTimeout(authenticate, 500);
+    return () => clearTimeout(timer);
+  }, [initData]);
+
+  // 获取任务列表（支持多语言）
+  useEffect(() => {
+    const fetchQuests = async () => {
+      setLoading(true);
+      try {
+        const data = await api.getQuests(locale);
+        setQuests(data.items);
+      } catch (error) {
+        console.error('获取任务列表失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuests();
+  }, [authToken, locale]);
+
+  // 提现处理
+  const handleWithdraw = async (asset, amount, toAddress) => {
+    try {
+      const result = await api.requestWithdraw(asset, amount, toAddress);
+      if (result.success) {
+        showToast(`提现申请已提交！${result.actualAmount} ${asset}`, 'success');
+        // 本地更新余额（实际应从后端刷新）
+        setWallet(prev => ({
+          ...prev,
+          balances: {
+            ...prev.balances,
+            [asset.toLowerCase()]: Math.max(0, (prev.balances[asset.toLowerCase()] || 0) - amount)
+          }
+        }));
+        return { success: true };
+      } else {
+        return { success: false, message: result.message || '提现失败' };
+      }
+    } catch (error) {
+      console.error('提现失败:', error);
+      return { success: false, message: '网络错误' };
+    }
+  };
+
+  // 签到
+  const handleCheckIn = async () => {
+    if (checkInData.todayChecked || checkInLoading) return;
+
+    setCheckInLoading(true);
+    try {
+      const result = await api.checkIn();
+      if (result.success) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        setCheckInData(prev => ({
+          lastCheckIn: new Date().toISOString(),
+          streak: result.streak || prev.streak + 1,
+          todayChecked: true,
+          checkInHistory: [...(prev.checkInHistory || []), todayStr]
+        }));
+
+        // 更新钱包余额
+        if (result.reward) {
+          setWallet(prev => ({
+            ...prev,
+            balances: {
+              ...prev.balances,
+              stars: (prev.balances.stars || 0) + result.reward
+            }
+          }));
+        }
+
+        showToast(`签到成功！连续 ${result.streak || checkInData.streak + 1} 天，+${result.reward || 10} Stars`, 'stars');
+      } else {
+        showToast(result.message || '签到失败', 'warning');
+      }
+    } catch (error) {
+      console.error('签到失败:', error);
+      showToast('签到失败，请重试', 'warning');
+    } finally {
+      setCheckInLoading(false);
+    }
+  };
+
+  // 补签
+  const handleMakeup = async (dateStr, cost) => {
+    if (checkInLoading) return;
+
+    // 检查是否有足够的 Stars
+    if ((wallet.balances.stars || 0) < cost) {
+      showToast(`Stars 不足！需要 ${cost} Stars`, 'warning');
+      return;
+    }
+
+    // 检查是否已经签到过
+    if (checkInData.checkInHistory?.includes(dateStr)) {
+      showToast('该日期已签到', 'warning');
+      return;
+    }
+
+    setCheckInLoading(true);
+    try {
+      const result = await api.makeupCheckIn(dateStr);
+      if (result.success) {
+        // 更新签到历史
+        setCheckInData(prev => ({
+          ...prev,
+          checkInHistory: [...(prev.checkInHistory || []), dateStr]
+        }));
+
+        // 更新钱包余额（扣除补签费用，加上奖励）
+        const netChange = (result.reward || 10) - (result.cost || cost);
+        setWallet(prev => ({
+          ...prev,
+          balances: {
+            ...prev.balances,
+            stars: (prev.balances.stars || 0) + netChange
+          }
+        }));
+
+        showToast(`补签成功！消耗 ${result.cost || cost} Stars，获得 ${result.reward || 10} Stars`, 'stars');
+      } else {
+        showToast(result.message || '补签失败', 'warning');
+      }
+    } catch (error) {
+      console.error('补签失败:', error);
+      showToast('补签失败，请重试', 'warning');
+    } finally {
+      setCheckInLoading(false);
+    }
+  };
+
+  // 生成邀请链接
+  const getInviteLink = () => {
+    const userId = user?.id || 'dev_user';
+    return `https://t.me/${BOT_USERNAME}?start=ref_${userId}`;
+  };
+
+  // 复制邀请链接
+  const handleCopyInviteLink = () => {
+    const link = getInviteLink();
+    navigator.clipboard.writeText(link).then(() => {
+      showToast('链接已复制！', 'success');
+    }).catch(() => {
+      // 降级方案
+      const textArea = document.createElement('textarea');
+      textArea.value = link;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      showToast('链接已复制！', 'success');
+    });
+  };
+
+  // 分享邀请链接
+  const handleShareInvite = () => {
+    const link = getInviteLink();
+    const inviterReward = inviteData.config?.inviterReward || 1;
+    const text = t ? t('invite.shareText').replace('{amount}', inviterReward) : `来 Quest Wall 做任务赚奖励！使用我的邀请链接注册，你我各得 ${inviterReward} USDT！`;
+
+    if (tg?.openTelegramLink) {
+      // 使用 Telegram 分享
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+    } else {
+      // 降级：复制到剪贴板
+      navigator.clipboard.writeText(`${text}\n${link}`);
+      showToast('分享内容已复制！', 'success');
+    }
+  };
+
+  const handleStartQuest = async (quest) => {
+    if (completedQuests.includes(quest.id)) {
+      showToast('你已经完成过这个任务了！', 'warning');
+      return;
+    }
+    setActiveQuest(quest);
+  };
+
+  const handleSubmitQuest = async () => {
+    if (!activeQuest) return;
+
+    // 统一使用 USDT 奖励
+    const rewardAmount = parseFloat(activeQuest.reward.amount);
+
+    setWallet(prev => ({
+      ...prev,
+      balances: {
+        ...prev.balances,
+        usdt: (prev.balances.usdt || 0) + rewardAmount
+      }
+    }));
+
+    setCompletedQuests(prev => [...prev, activeQuest.id]);
+    setActiveQuest(null);
+
+    // 显示成功动画
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 1500);
+
+    showToast(`任务完成！+${rewardAmount} USDT`, 'usdt');
+  };
+
+  // 计算总积分
+  const totalPoints = Math.floor(
+    (wallet.balances.stars || 0) * 1 +
+    (wallet.balances.ton || 0) * 100 +
+    (wallet.balances.usdt || 0) * 10 +
+    (wallet.balances.points || 0) * 1
+  );
+
+  // 过滤出未完成的任务（加入筛选和搜索）
+  const availableQuests = quests.filter(q => {
+    // 已完成的任务不显示
+    if (completedQuests.includes(q.id)) return false;
+    // 分类筛选
+    if (questFilter) {
+      const questType = q.type?.toUpperCase(); // 确保大写
+      if (questFilter === 'telegram') {
+        // TG任务：频道、群组
+        if (!['JOIN_CHANNEL', 'JOIN_GROUP'].includes(questType)) return false;
+      } else if (questFilter === 'twitter') {
+        // 推特任务：关注、转发、点赞、评论
+        if (!['FOLLOW_TWITTER', 'RETWEET_TWITTER', 'LIKE_TWITTER', 'COMMENT_TWITTER'].includes(questType)) return false;
+      } else if (questType !== questFilter.toUpperCase()) {
+        return false;
+      }
+    }
+    if (questSearch && !q.title.toLowerCase().includes(questSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  // 刷新任务列表
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const data = await api.getQuests(locale);
+      setQuests(data.items);
+      setToast({
+        visible: true,
+        message: t ? t('common.refreshSuccess') : '刷新成功',
+        type: 'refresh',
+        position: 'top'
+      });
+    } catch (error) {
+      console.error('刷新失败:', error);
+      setToast({
+        visible: true,
+        message: '刷新失败',
+        type: 'error',
+        position: 'top'
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const containerStyle = {
+    ...baseStyles.container,
+    backgroundColor: theme.secondaryBg,
+    // 为底部导航 + 安全区域留出空间
+    paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+  };
+
+  const sectionHeaderStyle = {
+    padding: '8px 20px 12px',
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.hint,
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  };
+
+  // 渲染首页内容
+  const renderHomePage = () => (
+    <>
+      <Header
+        completedCount={completedQuests.length}
+        totalPoints={totalPoints}
+        t={t}
+      />
+      <UserCard user={user} authStatus={authStatus} theme={theme} t={t} />
+
+      {/* 签到卡片 */}
+      <CheckInCard
+        checkInData={checkInData}
+        onCheckIn={handleCheckIn}
+        onMakeup={handleMakeup}
+        theme={theme}
+        t={t}
+      />
+
+      {/* 邀请卡片 */}
+      <InviteCard
+        inviteData={{
+          inviteCount: inviteData.inviteCount,
+          totalBonus: inviteData.totalBonus,
+          inviteBonus: inviteData.inviteBonus,
+          commissionBonus: inviteData.commissionBonus,
+          config: inviteData.config,
+          inviteLink: getInviteLink()
+        }}
+        onCopyLink={handleCopyInviteLink}
+        onShare={handleShareInvite}
+        theme={theme}
+        t={t}
+      />
+
+      <div style={sectionHeaderStyle}>
+        <span>🔥</span>
+        <span>{t('home.hotQuests')}</span>
+      </div>
+
+      {loading ? (
+        <Loading theme={theme} />
+      ) : availableQuests.length === 0 ? (
+        <EmptyState theme={theme} t={t} />
+      ) : (
+        <StaggeredList delay={50}>
+          {availableQuests.slice(0, 3).map(quest => (
+            <QuestCard
+              key={quest.id}
+              quest={quest}
+              onStart={handleStartQuest}
+              theme={theme}
+              isCompleted={completedQuests.includes(quest.id)}
+              t={t}
+            />
+          ))}
+        </StaggeredList>
+      )}
+
+      {availableQuests.length > 3 && (
+        <div style={{
+          textAlign: 'center',
+          padding: '12px 16px 20px',
+        }}>
+          <AnimatedButton
+            onClick={() => handleTabChange('quests')}
+            style={{
+              padding: '12px 32px',
+              fontSize: 14,
+              fontWeight: '600',
+              borderRadius: 12,
+              border: `1px solid ${theme.hint}30`,
+              background: 'transparent',
+              color: theme.text,
+              cursor: 'pointer',
+            }}
+          >
+            {t('home.viewAllQuests')}
+          </AnimatedButton>
+        </div>
+      )}
+    </>
+  );
+
+  // 渲染任务页面
+  const renderQuestsPage = () => (
+    <PullToRefresh onRefresh={handleRefresh} theme={theme}>
+      <div style={{
+        padding: '20px 16px 12px',
+        backgroundColor: theme.secondaryBg,
+      }}>
+        <h2 style={{
+          fontSize: 24,
+          fontWeight: '800',
+          color: theme.text,
+          margin: 0,
+          marginBottom: 4,
+        }}>{t('quest.title')}</h2>
+        <p style={{
+          fontSize: 14,
+          color: theme.hint,
+          margin: 0,
+        }}>{t('quest.subtitle')}</p>
+      </div>
+
+      {/* 筛选和搜索 */}
+      <QuestFilter
+        onFilterChange={setQuestFilter}
+        onSearchChange={setQuestSearch}
+        theme={theme}
+        t={t}
+      />
+
+      <div style={sectionHeaderStyle}>
+        <span>🎯</span>
+        <span>{t('quest.available')}</span>
+        <span style={{
+          marginLeft: 'auto',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: '#fff',
+          padding: '4px 10px',
+          borderRadius: 10,
+          fontSize: 12,
+        }}>
+          {availableQuests.length}
+        </span>
+      </div>
+
+      {loading ? (
+        <Loading theme={theme} />
+      ) : availableQuests.length === 0 ? (
+        <EmptyState theme={theme} t={t} />
+      ) : (
+        <StaggeredList delay={60}>
+          {availableQuests.map(quest => (
+            <QuestCard
+              key={quest.id}
+              quest={quest}
+              onStart={handleStartQuest}
+              theme={theme}
+              isCompleted={completedQuests.includes(quest.id)}
+              t={t}
+            />
+          ))}
+        </StaggeredList>
+      )}
+
+      {completedQuests.length > 0 && (
+        <>
+          <div style={sectionHeaderStyle}>
+            <span>✅</span>
+            <span>{t('quest.completed')}</span>
+            <span style={{
+              marginLeft: 'auto',
+              background: '#34c759',
+              color: '#fff',
+              padding: '4px 10px',
+              borderRadius: 10,
+              fontSize: 12,
+            }}>
+              {completedQuests.length}
+            </span>
+          </div>
+          <StaggeredList delay={60}>
+            {quests.filter(q => completedQuests.includes(q.id)).map(quest => (
+              <QuestCard
+                key={quest.id}
+                quest={quest}
+                onStart={handleStartQuest}
+                theme={theme}
+                isCompleted={true}
+                t={t}
+              />
+            ))}
+          </StaggeredList>
+        </>
+      )}
+    </PullToRefresh>
+  );
+
+  // 根据当前 tab 渲染内容
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return renderHomePage();
+      case 'quests':
+        return renderQuestsPage();
+      case 'rewards':
+        return (
+          <>
+            <div style={{
+              padding: '20px 16px 16px',
+              backgroundColor: theme.secondaryBg,
+            }}>
+              <h2 style={{
+                fontSize: 24,
+                fontWeight: '800',
+                color: theme.text,
+                margin: 0,
+                marginBottom: 4,
+              }}>{t('rewards.title')}</h2>
+              <p style={{
+                fontSize: 14,
+                color: theme.hint,
+                margin: 0,
+              }}>{t('rewards.subtitle')}</p>
+            </div>
+            <RewardsPage wallet={wallet} theme={theme} t={t} onWithdraw={() => setShowWithdrawModal(true)} api={api} />
+
+            {/* 排行榜 */}
+            <div style={{ marginTop: 16 }}>
+              <Leaderboard currentUser={user} wallet={wallet} theme={theme} api={api} t={t} />
+            </div>
+
+            {/* 交易历史 */}
+            <div style={{ marginTop: 16, paddingBottom: 20 }}>
+              <TransactionHistory theme={theme} api={api} />
+            </div>
+          </>
+        );
+      case 'profile':
+        return (
+          <>
+            <div style={{
+              padding: '20px 16px 16px',
+              backgroundColor: theme.secondaryBg,
+            }}>
+              <h2 style={{
+                fontSize: 24,
+                fontWeight: '800',
+                color: theme.text,
+                margin: 0,
+                marginBottom: 4,
+              }}>{t('profile.title')}</h2>
+              <p style={{
+                fontSize: 14,
+                color: theme.hint,
+                margin: 0,
+              }}>{t('profile.subtitle')}</p>
+            </div>
+            <ProfilePage
+              user={user}
+              authStatus={authStatus}
+              wallet={wallet}
+              completedQuests={completedQuests}
+              checkInData={checkInData}
+              inviteData={inviteData}
+              theme={theme}
+              token={authToken}
+              t={t}
+              locale={locale}
+              setLocale={setLocale}
+              supportedLocales={supportedLocales}
+              onTwitterBind={() => setShowTwitterModal(true)}
+              twitterBound={twitterStatus.bound}
+              twitterUsername={twitterStatus.twitterUsername}
+            />
+          </>
+        );
+      default:
+        return renderHomePage();
+    }
+  };
+
+  return (
+    <div style={containerStyle}>
+      <style>{globalStyles}</style>
+
+      <PageTransition pageKey={activeTab} type={getTransitionType()}>
+        {loading && activeTab === 'home' ? (
+          <HomePageSkeleton theme={theme} />
+        ) : loading && activeTab === 'quests' ? (
+          <QuestsPageSkeleton theme={theme} />
+        ) : (
+          renderContent()
+        )}
+      </PageTransition>
+
+      <QuestModal
+        quest={activeQuest}
+        onClose={() => setActiveQuest(null)}
+        onSubmit={handleSubmitQuest}
+        theme={theme}
+        api={api}
+        twitterBound={twitterStatus.bound}
+        twitterUsername={twitterStatus.twitterUsername}
+        onTwitterBindSuccess={() => {
+          // 刷新 Twitter 状态
+          api.getTwitterStatus().then(status => {
+            setTwitterStatus({
+              bound: status.bound || false,
+              twitterUsername: status.twitterUsername || null,
+            });
+          });
+        }}
+      />
+
+      {/* 底部导航 */}
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        theme={theme}
+        t={t}
+      />
+
+      {/* 提现弹窗 */}
+      <WithdrawModal
+        visible={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        wallet={wallet}
+        onWithdraw={handleWithdraw}
+        theme={theme}
+        t={t}
+      />
+
+      {/* Twitter 绑定弹窗 */}
+      <TwitterBindModal
+        isOpen={showTwitterModal}
+        onClose={() => setShowTwitterModal(false)}
+        theme={theme}
+        api={api}
+        t={t}
+        onBindSuccess={() => {
+          showToast(t ? t('twitter.bindSuccess') : 'Twitter 绑定成功！', 'success');
+          // 刷新 Twitter 状态
+          api.getTwitterStatus().then(status => {
+            setTwitterStatus({
+              bound: status.bound || false,
+              twitterUsername: status.twitterUsername || null,
+            });
+          });
+        }}
+        onUnbindSuccess={() => {
+          showToast(t ? t('twitter.unbindSuccess') : 'Twitter 已解绑', 'success');
+          // 刷新 Twitter 状态
+          setTwitterStatus({
+            bound: false,
+            twitterUsername: null,
+          });
+        }}
+      />
+
+      {/* Toast 提示 */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        position={toast.position || 'center'}
+        onClose={() => setToast(prev => ({ ...prev, visible: false }))}
+      />
+
+      {/* 成功动画 */}
+      {showSuccess && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          zIndex: 3000,
+        }}>
+          <SuccessAnimation show={showSuccess} size={80} />
+        </div>
+      )}
+    </div>
+  );
+}

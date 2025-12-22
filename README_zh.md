@@ -1,4 +1,3 @@
-test
 # Quest Wall
 
 Quest Wall 是一个基于 Telegram MiniApp 的任务墙系统，允许用户完成各种任务并获得奖励。系统支持多种任务类型，包括社交任务（关注频道、加入群组）、链上任务（代币转账、NFT 铸造）等。

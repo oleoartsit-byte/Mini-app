@@ -218,40 +218,27 @@ export class RewardsService {
 
   // 获取排行榜
   async getLeaderboard(limit: number = 10) {
-    // 获取完成任务数最多的用户
+    // 按用户积分排序
     const users = await this.prisma.user.findMany({
       take: limit,
       orderBy: {
-        actions: {
-          _count: 'desc'
-        }
+        points: 'desc'
       },
       include: {
         _count: {
           select: { actions: true }
-        },
-        rewards: {
-          where: { status: RewardStatus.COMPLETED },
-          select: { amount: true }
         }
       }
     });
 
     return users.map((user, index) => {
-      // 计算用户积分（完成任务数 * 100 + 奖励总额）
-      const totalRewards = user.rewards.reduce(
-        (sum, r) => sum.plus(r.amount),
-        new Decimal(0)
-      );
-      const points = user._count.actions * 100 + Number(totalRewards) * 10;
-
       return {
         rank: index + 1,
         id: user.id.toString(),
         username: user.username || user.firstName || `用户${user.id}`,
         avatarUrl: user.avatarUrl,  // 用户真实头像
         avatar: this.getAvatarEmoji(index),  // 保留 emoji 作为备用
-        points: Math.floor(points),
+        points: user.points,
         quests: user._count.actions,
       };
     });
@@ -264,10 +251,6 @@ export class RewardsService {
       include: {
         _count: {
           select: { actions: true }
-        },
-        rewards: {
-          where: { status: RewardStatus.COMPLETED },
-          select: { amount: true }
         }
       }
     });
@@ -276,28 +259,18 @@ export class RewardsService {
       return { rank: 0, points: 0, quests: 0 };
     }
 
-    // 计算用户积分
-    const totalRewards = user.rewards.reduce(
-      (sum, r) => sum.plus(r.amount),
-      new Decimal(0)
-    );
-    const userPoints = user._count.actions * 100 + Number(totalRewards) * 10;
-
     // 计算排名（比当前用户积分高的用户数 + 1）
-    const higherRankCount = await this.prisma.$queryRaw<[{count: bigint}]>`
-      SELECT COUNT(DISTINCT u.id) as count
-      FROM users u
-      LEFT JOIN actions a ON a.user_id = u.id
-      LEFT JOIN rewards r ON r.user_id = u.id AND r.status = 'COMPLETED'
-      GROUP BY u.id
-      HAVING COALESCE(COUNT(DISTINCT a.id), 0) * 100 + COALESCE(SUM(r.amount), 0) * 10 > ${userPoints}
-    `;
+    const higherRankCount = await this.prisma.user.count({
+      where: {
+        points: { gt: user.points }
+      }
+    });
 
-    const rank = Number(higherRankCount[0]?.count || 0) + 1;
+    const rank = higherRankCount + 1;
 
     return {
       rank,
-      points: Math.floor(userPoints),
+      points: user.points,
       quests: user._count.actions,
       username: user.username || user.firstName || `用户${user.id}`,
     };

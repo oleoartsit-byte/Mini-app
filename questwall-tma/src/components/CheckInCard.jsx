@@ -1,26 +1,20 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { IconGift, IconCheck } from './icons/CyberpunkIcons';
 
-// 默认签到奖励配置（积分）- 当后端未返回配置时使用
+// 默认签到奖励配置（积分）
 const DEFAULT_DAILY_REWARDS = [10, 20, 30, 40, 50, 60, 100];
 const DEFAULT_MAKEUP_COST = 20;
-
-// 可补签的最大天数
 const MAX_MAKEUP_DAYS = 7;
 
-export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
+export function CheckInCard({ checkInData, onCheckIn, onMakeup, t }) {
   const { lastCheckIn, streak, todayChecked, checkInHistory = [], config } = checkInData;
   const [showMakeup, setShowMakeup] = useState(false);
 
-  // 从后端配置获取奖励数组和补签费用，若无则使用默认值
   const dailyRewards = config?.dailyRewards || DEFAULT_DAILY_REWARDS;
   const makeupCost = config?.makeupCost || DEFAULT_MAKEUP_COST;
-
-  // 获取今天是连续签到的第几天（1-7循环）
   const currentDay = ((streak - 1) % 7) + 1;
-  // 今天的奖励（从后端配置获取）
   const todayReward = dailyRewards[(currentDay - 1) % 7] || 10;
 
-  // 获取最近7天的日期
   const getRecentDays = () => {
     const days = [];
     const today = new Date();
@@ -38,10 +32,10 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
         dayNum: date.getDate(),
         weekDay: t
           ? t(`checkIn.weekDays.${date.getDay()}`)
-          : ['日', '一', '二', '三', '四', '五', '六'][date.getDay()],
+          : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()],
         isToday,
         isChecked,
-        canMakeup: !isChecked && !isToday, // 不能补今天，今天要正常签到
+        canMakeup: !isChecked && !isToday,
       });
     }
     return days;
@@ -52,96 +46,126 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
 
   const styles = {
     section: {
-      backgroundColor: theme.bg,
+      background: 'rgba(20, 20, 45, 0.75)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
       margin: '0 16px 12px',
       borderRadius: 16,
       overflow: 'hidden',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-      border: `1px solid ${theme.secondaryBg}`,
+      border: '2px solid rgba(255, 193, 7, 0.4)',
+      position: 'relative',
     },
     content: {
       padding: '14px 16px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: 12,
+      position: 'relative',
+      zIndex: 1,
     },
     left: {
       display: 'flex',
       alignItems: 'center',
       gap: 12,
+      flex: 1,
+      minWidth: 0,
     },
     iconWrapper: {
-      width: 40,
-      height: 40,
-      borderRadius: 10,
-      background: 'linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%)',
+      width: 46,
+      height: 46,
+      borderRadius: 12,
+      background: 'linear-gradient(135deg, #ffc107, #ff9500)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: 18,
+      flexShrink: 0,
+      boxShadow: '0 4px 16px rgba(255, 193, 7, 0.4)',
     },
     textContainer: {
       display: 'flex',
       flexDirection: 'column',
+      flex: 1,
+      minWidth: 0,
     },
     title: {
-      fontSize: 15,
+      fontSize: 13,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#ffc107',
       margin: 0,
+      marginBottom: 2,
+      whiteSpace: 'nowrap',
     },
     subtitle: {
-      fontSize: 12,
-      color: theme.hint,
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.6)',
       margin: 0,
-      marginTop: 2,
+      fontFamily: "'Rajdhani', sans-serif",
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
     },
     reward: {
-      fontSize: 12,
-      color: '#ff9500',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 3,
+      padding: '2px 6px',
+      background: 'rgba(255, 215, 0, 0.2)',
+      borderRadius: 8,
+      fontSize: 10,
       fontWeight: '600',
-      margin: 0,
-      marginTop: 2,
+      fontFamily: "'Roboto Mono', monospace",
+      color: '#ffc107',
+      width: 'fit-content',
     },
     buttonGroup: {
       display: 'flex',
-      gap: 8,
+      gap: 6,
+      flexShrink: 0,
     },
     checkInButton: {
-      padding: '10px 18px',
-      fontSize: 14,
+      padding: '10px 14px',
+      fontSize: 11,
       fontWeight: '700',
-      borderRadius: 10,
+      fontFamily: "'Orbitron', sans-serif",
+      borderRadius: 12,
       border: 'none',
       background: todayChecked
-        ? theme.secondaryBg
-        : 'linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%)',
-      color: todayChecked ? theme.hint : '#fff',
+        ? 'rgba(57, 255, 20, 0.2)'
+        : 'linear-gradient(135deg, #ffc107, #ff9500)',
+      color: todayChecked ? '#39ff14' : '#000',
       cursor: todayChecked ? 'default' : 'pointer',
-      boxShadow: todayChecked ? 'none' : '0 4px 12px rgba(255, 149, 0, 0.3)',
+      boxShadow: todayChecked ? '0 0 10px rgba(57, 255, 20, 0.3)' : '0 4px 12px rgba(255, 215, 0, 0.3)',
+      transition: 'all 0.3s ease',
+      whiteSpace: 'nowrap',
     },
     makeupButton: {
-      padding: '10px 14px',
-      fontSize: 13,
+      padding: '10px 12px',
+      fontSize: 10,
       fontWeight: '600',
-      borderRadius: 10,
-      border: `1px solid ${theme.hint}33`,
-      background: 'transparent',
-      color: theme.hint,
+      borderRadius: 12,
+      border: '1px solid rgba(255,255,255,0.15)',
+      background: 'rgba(255,255,255,0.05)',
+      color: 'rgba(255,255,255,0.6)',
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
-      gap: 4,
+      gap: 3,
+      transition: 'all 0.3s ease',
+      fontFamily: "'Rajdhani', sans-serif",
+      whiteSpace: 'nowrap',
     },
-    // 补签面板样式
     makeupPanel: {
       maxHeight: showMakeup ? '300px' : '0',
       overflow: 'hidden',
       transition: 'max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      borderTop: showMakeup ? `1px solid ${theme.secondaryBg}` : 'none',
     },
     makeupContent: {
       padding: '16px',
+      background: 'rgba(0, 0, 0, 0.3)',
+      borderTop: '1px solid rgba(255, 193, 7, 0.2)',
     },
     makeupHeader: {
       display: 'flex',
@@ -150,18 +174,20 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
       marginBottom: 12,
     },
     makeupTitle: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '600',
-      color: theme.text,
+      color: '#fff',
       margin: 0,
+      fontFamily: "'Rajdhani', sans-serif",
     },
     makeupCost: {
-      fontSize: 12,
-      color: theme.hint,
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.4)',
+      fontFamily: "'Rajdhani', sans-serif",
     },
     daysGrid: {
       display: 'flex',
-      gap: 8,
+      gap: 5,
       justifyContent: 'space-between',
     },
     dayItem: {
@@ -170,28 +196,34 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
       flexDirection: 'column',
       alignItems: 'center',
       padding: '8px 4px',
-      borderRadius: 10,
+      borderRadius: 8,
       cursor: 'pointer',
       transition: 'all 0.2s ease',
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid transparent',
     },
     dayWeek: {
-      fontSize: 10,
-      marginBottom: 4,
+      fontSize: 9,
+      marginBottom: 3,
+      color: 'rgba(255,255,255,0.4)',
+      fontFamily: "'Rajdhani', sans-serif",
     },
     dayNum: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '600',
-      marginBottom: 4,
+      marginBottom: 3,
+      fontFamily: "'Orbitron', sans-serif",
     },
     dayStatus: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '500',
     },
     missedCount: {
-      fontSize: 11,
-      color: '#ff5e3a',
-      marginTop: 8,
+      fontSize: 10,
+      color: '#ff4da6',
+      marginTop: 10,
       textAlign: 'center',
+      fontFamily: "'Rajdhani', sans-serif",
     },
   };
 
@@ -200,21 +232,25 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
       return {
         ...styles.dayItem,
         background: todayChecked
-          ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
-          : 'linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%)',
+          ? 'linear-gradient(135deg, rgba(57, 255, 20, 0.2), rgba(255, 193, 7, 0.15))'
+          : 'linear-gradient(135deg, rgba(255, 193, 7, 0.25), rgba(255, 150, 0, 0.2))',
+        border: todayChecked
+          ? '1px solid rgba(57, 255, 20, 0.4)'
+          : '1px solid rgba(255, 193, 7, 0.5)',
       };
     }
     if (day.isChecked) {
       return {
         ...styles.dayItem,
-        background: theme.secondaryBg,
+        background: 'rgba(57, 255, 20, 0.1)',
+        border: '1px solid rgba(57, 255, 20, 0.2)',
       };
     }
     if (day.canMakeup) {
       return {
         ...styles.dayItem,
-        background: `${theme.hint}15`,
-        border: `1px dashed ${theme.hint}50`,
+        background: 'rgba(255, 77, 166, 0.1)',
+        border: '1px dashed rgba(255, 77, 166, 0.3)',
       };
     }
     return styles.dayItem;
@@ -230,16 +266,16 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
     <div style={styles.section}>
       <div style={styles.content}>
         <div style={styles.left}>
-          <div style={styles.iconWrapper}>📅</div>
+          <div style={styles.iconWrapper}><IconGift size={22} color="#fff" /></div>
           <div style={styles.textContainer}>
-            <p style={styles.title}>{t ? t('checkIn.title') : '每日签到'}</p>
+            <p style={styles.title}>DAILY CHECK-IN</p>
             <p style={styles.subtitle}>
               {streak > 0
-                ? (t ? `${t('checkIn.streak')} ${streak} ${t('checkIn.days')}` : `连续 ${streak} 天`)
-                : (t ? t('checkIn.checkInBtn') : '开始签到')}
+                ? (t ? `${t('checkIn.streak')} ${streak} ${t('checkIn.days')}` : `${streak} day streak`)
+                : (t ? t('checkIn.checkInBtn') : 'Start checking in')}
             </p>
             {!todayChecked && (
-              <p style={styles.reward}>{t ? t('checkIn.todayReward') : '今日'} +{todayReward} 积分</p>
+              <div style={styles.reward}>+{todayReward} Points</div>
             )}
           </div>
         </div>
@@ -249,11 +285,12 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
               style={styles.makeupButton}
               onClick={() => setShowMakeup(!showMakeup)}
             >
-              {t ? t('checkIn.makeup') : '补签'}
+              {t ? t('checkIn.makeup') : 'Makeup'}
               <span style={{
                 transform: showMakeup ? 'rotate(180deg)' : 'rotate(0deg)',
                 transition: 'transform 0.3s ease',
                 display: 'inline-block',
+                fontSize: 8,
               }}>
                 ▼
               </span>
@@ -264,17 +301,16 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
             onClick={onCheckIn}
             disabled={todayChecked}
           >
-            {todayChecked ? (t ? t('checkIn.checkedIn') + ' ✓' : '已签到 ✓') : (t ? t('checkIn.checkInBtn') : '签到')}
+            {todayChecked ? <IconCheck size={14} color="#39ff14" /> : (t ? t('checkIn.checkInBtn') : 'Check In')}
           </button>
         </div>
       </div>
 
-      {/* 补签面板 */}
       <div style={styles.makeupPanel}>
         <div style={styles.makeupContent}>
           <div style={styles.makeupHeader}>
-            <p style={styles.makeupTitle}>{t ? t('checkIn.selectDate') : '选择要补签的日期'}</p>
-            <span style={styles.makeupCost}>{t ? t('checkIn.makeupCost', { cost: makeupCost }) : `消耗 ${makeupCost} 积分`}</span>
+            <p style={styles.makeupTitle}>{t ? t('checkIn.selectDate') : 'Select date to makeup'}</p>
+            <span style={styles.makeupCost}>{t ? t('checkIn.makeupCost', { cost: makeupCost }) : `Cost: ${makeupCost} pts`}</span>
           </div>
 
           <div style={styles.daysGrid}>
@@ -284,23 +320,27 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
                 style={getDayStyle(day)}
                 onClick={() => handleMakeup(day)}
               >
-                <span style={{ ...styles.dayWeek, color: day.isToday ? '#fff' : theme.text }}>{day.weekDay}</span>
+                <span style={styles.dayWeek}>{day.weekDay}</span>
                 <span style={{
                   ...styles.dayNum,
-                  color: day.isToday ? '#fff' : (day.isChecked ? '#4CAF50' : (day.canMakeup ? '#ff5e3a' : theme.text)),
+                  color: day.isToday
+                    ? (todayChecked ? '#39ff14' : '#ffc107')
+                    : (day.isChecked ? '#39ff14' : (day.canMakeup ? '#ff4da6' : 'rgba(255,255,255,0.6)')),
                 }}>
                   {day.dayNum}
                 </span>
                 <span style={{
                   ...styles.dayStatus,
-                  color: day.isToday ? '#fff' : (day.isChecked ? '#4CAF50' : '#ff5e3a'),
+                  color: day.isToday
+                    ? (todayChecked ? '#39ff14' : '#ffc107')
+                    : (day.isChecked ? '#39ff14' : '#ff4da6'),
                 }}>
                   {day.isToday
-                    ? (todayChecked ? '✓' : (t ? t('checkIn.today') : '今'))
+                    ? (todayChecked ? <IconCheck size={11} color="#39ff14" /> : (t ? t('checkIn.today') : 'Today'))
                     : day.isChecked
-                      ? '✓'
+                      ? <IconCheck size={11} color="#39ff14" />
                       : day.canMakeup
-                        ? (t ? t('checkIn.missed') : '漏')
+                        ? (t ? t('checkIn.missed') : 'Miss')
                         : ''}
                 </span>
               </div>
@@ -309,7 +349,7 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, theme, t }) {
 
           {missedDays > 0 && (
             <p style={styles.missedCount}>
-              {t ? t('checkIn.missedHint', { count: missedDays }) : `您有 ${missedDays} 天漏签，点击日期即可补签`}
+              {t ? t('checkIn.missedHint', { count: missedDays }) : `${missedDays} missed days. Tap to makeup.`}
             </p>
           )}
         </div>

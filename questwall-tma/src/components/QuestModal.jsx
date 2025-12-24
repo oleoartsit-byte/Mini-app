@@ -1,31 +1,37 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AnimatedButton } from './PageTransition';
 import { TwitterBindModal } from './TwitterBindModal';
+import { IconTelegram, IconUsers, IconLink, IconTwitter, IconShare, IconHeart, IconComment, IconTarget, IconCheck, IconClock, IconDollar, IconStar, IconInfo } from './icons/CyberpunkIcons';
 
-// 所有奖励统一使用 USDT
-const getRewardIcon = () => '💵';
+// 获取奖励信息（USDT + 积分）
+const getRewardDisplay = (reward) => {
+  const usdt = Number(reward?.amount) || 0;
+  // 优先使用后端返回的 points，否则按 1:10 计算
+  const points = reward?.points !== undefined ? reward.points : Math.floor(usdt * 10);
+  return { usdt, points };
+};
 
-// 获取任务类型信息
+// 获取任务类型信息（返回图标类型和样式，实际渲染在组件内）
 const getQuestTypeInfo = (type) => {
   switch (type) {
     case 'join_channel':
-      return { icon: '📢', label: '关注频道', actionText: '前往关注', verifyText: '验证关注' };
+      return { iconType: 'telegram', iconColor: '#00e5ff', label: '关注频道', actionText: '前往关注', verifyText: '验证关注' };
     case 'join_group':
-      return { icon: '👥', label: '加入群组', actionText: '前往加入', verifyText: '验证加入' };
+      return { iconType: 'users', iconColor: '#bf5fff', label: '加入群组', actionText: '前往加入', verifyText: '验证加入' };
     case 'deep_link':
-      return { icon: '🔗', label: '访问链接', actionText: '前往访问', verifyText: '确认完成' };
+      return { iconType: 'link', iconColor: '#00e5ff', label: '访问链接', actionText: '前往访问', verifyText: '确认完成' };
     case 'follow_twitter':
-      return { icon: '🐦', label: '关注推特', actionText: '前往关注', verifyText: '验证关注' };
+      return { iconType: 'twitter', iconColor: '#1DA1F2', label: '关注推特', actionText: '前往关注', verifyText: '验证关注' };
     case 'retweet_twitter':
-      return { icon: '🔁', label: '转发推文', actionText: '前往转发', verifyText: '验证转发' };
+      return { iconType: 'share', iconColor: '#1DA1F2', label: '转发推文', actionText: '前往转发', verifyText: '验证转发' };
     case 'like_twitter':
-      return { icon: '❤️', label: '点赞推文', actionText: '前往点赞', verifyText: '验证点赞' };
+      return { iconType: 'heart', iconColor: '#ff4da6', label: '点赞推文', actionText: '前往点赞', verifyText: '验证点赞' };
     case 'comment_twitter':
-      return { icon: '💬', label: '评论推文', actionText: '前往评论', verifyText: '验证评论' };
+      return { iconType: 'comment', iconColor: '#1DA1F2', label: '评论推文', actionText: '前往评论', verifyText: '验证评论' };
     case 'like_post':
-      return { icon: '❤️', label: '点赞帖子', actionText: '前往点赞', verifyText: '确认完成' };
+      return { iconType: 'heart', iconColor: '#ff4da6', label: '点赞帖子', actionText: '前往点赞', verifyText: '确认完成' };
     default:
-      return { icon: '🎯', label: '任务', actionText: '开始', verifyText: '完成' };
+      return { iconType: 'target', iconColor: '#00e5ff', label: '任务', actionText: '开始', verifyText: '完成' };
   }
 };
 
@@ -34,13 +40,16 @@ const isVerifiableQuest = (type) => {
   return ['join_channel', 'join_group', 'follow_twitter', 'retweet_twitter', 'like_twitter', 'comment_twitter'].includes(type);
 };
 
-export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound, twitterUsername, onTwitterBindSuccess, t }) {
-  const [step, setStep] = useState('intro'); // intro | need_bind | verifying | success | error
+export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitterUsername, onTwitterBindSuccess, t }) {
+  const [step, setStep] = useState('intro'); // intro | need_bind | upload_proof | verifying | success | error | pending_review
   const [verifyMessage, setVerifyMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showTwitterBind, setShowTwitterBind] = useState(false);
   const [localTwitterBound, setLocalTwitterBound] = useState(twitterBound);
   const [localTwitterUsername, setLocalTwitterUsername] = useState(twitterUsername);
+  const [proofImage, setProofImage] = useState(null);
+  const [proofImagePreview, setProofImagePreview] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // 同步外部 Twitter 绑定状态
   useEffect(() => {
@@ -55,12 +64,54 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
       setVerifyMessage('');
       setIsLoading(false);
       setShowTwitterBind(false);
+      setProofImage(null);
+      setProofImagePreview(null);
     }
   }, [quest?.id]);
+
+  // 检查是否是需要截图的任务类型
+  const isProofImageQuest = (type) => {
+    return type === 'like_twitter';
+  };
+
+  // 处理图片选择
+  const handleImageSelect = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 预览图片
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setProofImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+
+    // 上传图片
+    setIsUploading(true);
+    try {
+      const result = await api.uploadImage(file);
+      if (result.success && result.url) {
+        setProofImage(result.url);
+      } else {
+        setVerifyMessage(result.message || '图片上传失败');
+        setProofImagePreview(null);
+      }
+    } catch (error) {
+      console.error('上传图片失败:', error);
+      setVerifyMessage('图片上传失败');
+      setProofImagePreview(null);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [api]);
 
   // 构建频道/群组链接
   const getTargetLink = useCallback(() => {
     if (!quest) return null;
+    // 点赞任务使用固定的推文链接（测试用，后续换成官方账号推文）
+    if (quest.type === 'like_twitter') {
+      return 'https://x.com/MoSalah/status/2003237101740130408';
+    }
     if (quest.targetUrl) return quest.targetUrl;
     if (quest.channelId) {
       if (quest.channelId.startsWith('@')) {
@@ -80,7 +131,7 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
   const handleGoToTarget = useCallback(async () => {
     if (!quest) return;
 
-    // Twitter 任务：先检查是否绑定
+    // 所有 Twitter 任务：先检查是否绑定
     if (isTwitterQuest(quest.type) && !localTwitterBound) {
       setStep('need_bind');
       return;
@@ -99,8 +150,14 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
       } else {
         window.open(link, '_blank');
       }
-      // 更新状态为待验证
-      setStep('ready_verify');
+
+      // 点赞任务：跳转到截图上传步骤
+      if (isProofImageQuest(quest.type)) {
+        setStep('upload_proof');
+      } else {
+        // 其他任务：跳转到待验证步骤
+        setStep('ready_verify');
+      }
     }
   }, [quest, api, getTargetLink, localTwitterBound]);
 
@@ -121,13 +178,50 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
               api.claimQuest(quest.id).catch(e => console.log('领取任务:', e));
             }
             window.open(link, '_blank');
-            setStep('ready_verify');
+            // 点赞任务跳转到上传截图，其他任务跳转到验证
+            if (isProofImageQuest(quest.type)) {
+              setStep('upload_proof');
+            } else {
+              setStep('ready_verify');
+            }
           }
         }
       });
     }
     setShowTwitterBind(false);
   }, [api, quest, getTargetLink, onTwitterBindSuccess]);
+
+  // 提交截图证明（点赞任务专用）
+  const handleSubmitProof = useCallback(async () => {
+    if (!quest || !proofImage) return;
+    setIsLoading(true);
+    setStep('verifying');
+    setVerifyMessage('正在提交...');
+
+    try {
+      const result = await api.submitQuest(quest.id, { type: 'twitter_like' }, proofImage);
+
+      if (result.pendingReview) {
+        // 等待人工审核
+        setStep('pending_review');
+        setVerifyMessage(result.message || '截图已提交，等待审核');
+      } else if (result.success || result.verified || result.status === 'REWARDED') {
+        setStep('success');
+        setVerifyMessage(result.message || '验证成功！奖励已发放！');
+        setTimeout(() => {
+          onSubmit?.();
+        }, 800);
+      } else {
+        setStep('error');
+        setVerifyMessage(result.message || '提交失败');
+      }
+    } catch (error) {
+      setStep('error');
+      setVerifyMessage('提交失败，请稍后重试');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api, quest, proofImage, onSubmit]);
 
   // 验证是否完成任务
   const handleVerify = useCallback(async () => {
@@ -137,12 +231,11 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
     setVerifyMessage('正在验证...');
 
     try {
-      // Twitter 任务验证（关注/转发/点赞/评论）
-      if (isTwitterQuest(quest.type)) {
+      // Twitter 任务验证（关注/转发/评论，点赞走截图流程）
+      if (isTwitterQuest(quest.type) && !isProofImageQuest(quest.type)) {
         const typeMap = {
           'follow_twitter': 'twitter_follow',
           'retweet_twitter': 'twitter_retweet',
-          'like_twitter': 'twitter_like',
           'comment_twitter': 'twitter_comment',
         };
         const result = await api.submitQuest(quest.id, { type: typeMap[quest.type] });
@@ -193,6 +286,22 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
   const needsVerification = isVerifiableQuest(quest.type);
   const hasChannelId = quest.channelId || quest.targetUrl;
 
+  // 根据 iconType 渲染对应的图标
+  const renderTypeIcon = (size = 16) => {
+    const color = typeInfo.iconColor;
+    switch (typeInfo.iconType) {
+      case 'telegram': return <IconTelegram size={size} color={color} />;
+      case 'users': return <IconUsers size={size} color={color} />;
+      case 'link': return <IconLink size={size} color={color} />;
+      case 'twitter': return <IconTwitter size={size} color={color} />;
+      case 'share': return <IconShare size={size} color={color} />;
+      case 'heart': return <IconHeart size={size} color={color} />;
+      case 'comment': return <IconComment size={size} color={color} />;
+      case 'target': return <IconTarget size={size} color={color} />;
+      default: return <IconTarget size={size} color={color} />;
+    }
+  };
+
   const styles = {
     overlay: {
       position: 'fixed',
@@ -200,66 +309,89 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: 'rgba(0,0,0,0.7)',
       display: 'flex',
       alignItems: 'flex-end',
       justifyContent: 'center',
       zIndex: 2000,
+      backdropFilter: 'blur(4px)',
     },
     content: {
-      backgroundColor: theme.bg,
-      borderRadius: '16px 16px 0 0',
+      background: 'linear-gradient(145deg, rgba(25, 25, 45, 0.98), rgba(18, 18, 38, 0.98))',
+      borderRadius: '20px 20px 0 0',
       padding: '20px 20px 40px 20px',
       paddingBottom: 'calc(40px + env(safe-area-inset-bottom, 20px))',
       width: '100%',
       maxHeight: '80vh',
       animation: 'slideUp 0.3s ease-out',
+      border: '1px solid rgba(0, 229, 255, 0.2)',
+      borderBottom: 'none',
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    glowEffect: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '100px',
+      background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 229, 255, 0.15) 0%, transparent 70%)',
+      pointerEvents: 'none',
     },
     handle: {
-      width: 36,
+      width: 40,
       height: 4,
-      backgroundColor: theme.hint,
+      background: 'linear-gradient(135deg, #00e5ff, #bf5fff)',
       borderRadius: 2,
-      margin: '0 auto 16px',
-      opacity: 0.3,
+      margin: '0 auto 18px',
+      boxShadow: '0 0 10px rgba(0, 229, 255, 0.5)',
     },
     typeTag: {
       display: 'inline-flex',
       alignItems: 'center',
-      gap: 6,
-      padding: '6px 12px',
-      backgroundColor: theme.secondaryBg,
+      gap: 8,
+      padding: '8px 16px',
+      background: 'rgba(0, 229, 255, 0.1)',
+      border: '1px solid rgba(0, 229, 255, 0.3)',
       borderRadius: 20,
-      fontSize: 13,
-      fontWeight: '600',
-      color: theme.text,
-      margin: '0 auto 12px',
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      color: '#00e5ff',
+      margin: '0 auto 14px',
     },
     title: {
       fontSize: 20,
-      fontWeight: '600',
-      color: theme.text,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       margin: 0,
-      marginBottom: 8,
+      marginBottom: 10,
       textAlign: 'center',
+      textShadow: '0 0 15px rgba(0, 229, 255, 0.3)',
     },
     desc: {
-      fontSize: 15,
-      color: theme.hint,
+      fontSize: 14,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       margin: 0,
       marginBottom: 20,
       textAlign: 'center',
-      lineHeight: 1.5,
+      lineHeight: 1.6,
     },
     reward: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 6,
-      fontSize: 15,
-      fontWeight: '600',
-      color: theme.warning,
+      gap: 8,
+      fontSize: 14,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#ffc107',
       marginBottom: 20,
+      textShadow: '0 0 10px rgba(255, 193, 7, 0.4)',
     },
     buttons: {
       display: 'flex',
@@ -268,104 +400,135 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
     cancelButton: {
       flex: 1,
       padding: '14px',
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 13,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
       borderRadius: 12,
-      border: 'none',
-      backgroundColor: theme.secondaryBg,
-      color: theme.text,
+      border: '1px solid rgba(0, 229, 255, 0.2)',
+      backgroundColor: 'rgba(40, 40, 70, 0.8)',
+      color: '#fff',
       cursor: 'pointer',
+      transition: 'all 0.3s ease',
     },
     primaryButton: {
       flex: 1,
       padding: '14px',
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 13,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
       borderRadius: 12,
       border: 'none',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: '#fff',
+      background: 'linear-gradient(135deg, #00e5ff, #bf5fff)',
+      color: '#000',
       cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+      boxShadow: '0 0 20px rgba(0, 229, 255, 0.4)',
+      transition: 'all 0.3s ease',
     },
     submitButton: {
       flex: 1,
       padding: '14px',
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 13,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
       borderRadius: 12,
       border: 'none',
-      backgroundColor: theme.success,
-      color: '#fff',
+      background: 'linear-gradient(135deg, #39ff14, #00e5ff)',
+      color: '#000',
       cursor: 'pointer',
+      boxShadow: '0 0 20px rgba(57, 255, 20, 0.4)',
+      transition: 'all 0.3s ease',
     },
     verifyButton: {
       flex: 1,
       padding: '14px',
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 13,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
       borderRadius: 12,
       border: 'none',
-      background: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
-      color: '#fff',
+      background: 'linear-gradient(135deg, #39ff14, #00e5ff)',
+      color: '#000',
       cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+      boxShadow: '0 0 20px rgba(57, 255, 20, 0.4)',
+      transition: 'all 0.3s ease',
     },
     statusContainer: {
       textAlign: 'center',
-      padding: '20px 0',
+      padding: '24px 0',
     },
     statusIcon: {
-      fontSize: 48,
-      marginBottom: 12,
+      fontSize: 56,
+      marginBottom: 16,
     },
     statusText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: theme.text,
-      marginBottom: 8,
+      fontSize: 18,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
+      marginBottom: 10,
     },
     statusHint: {
       fontSize: 14,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
     },
     spinner: {
-      width: 40,
-      height: 40,
-      border: `3px solid ${theme.secondaryBg}`,
-      borderTopColor: '#667eea',
+      width: 44,
+      height: 44,
+      border: '3px solid rgba(0, 229, 255, 0.2)',
+      borderTopColor: '#00e5ff',
       borderRadius: '50%',
       animation: 'spin 1s linear infinite',
-      margin: '0 auto 12px',
+      margin: '0 auto 14px',
+      boxShadow: '0 0 20px rgba(0, 229, 255, 0.3)',
     },
     stepsContainer: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 8,
+      gap: 10,
       marginBottom: 20,
-      padding: '12px 16px',
-      backgroundColor: theme.secondaryBg,
-      borderRadius: 12,
+      padding: '14px 18px',
+      background: 'rgba(30, 30, 55, 0.8)',
+      borderRadius: 14,
+      border: '1px solid rgba(0, 229, 255, 0.15)',
     },
     stepItem: {
       display: 'flex',
       alignItems: 'center',
       gap: 6,
-      fontSize: 13,
-      color: theme.hint,
+      fontSize: 12,
+      fontFamily: "'Orbitron', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
     },
     stepItemActive: {
-      color: '#667eea',
-      fontWeight: '600',
+      color: '#00e5ff',
+      fontWeight: '700',
+      textShadow: '0 0 8px rgba(0, 229, 255, 0.6)',
     },
     stepItemDone: {
-      color: theme.success,
+      color: '#39ff14',
+      textShadow: '0 0 8px rgba(57, 255, 20, 0.6)',
     },
     stepArrow: {
       fontSize: 12,
-      color: theme.hint,
+      color: '#00e5ff',
       opacity: 0.5,
+    },
+    secondaryBg: {
+      background: 'rgba(0, 0, 0, 0.3)',
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 20,
+      border: '1px solid rgba(0, 229, 255, 0.1)',
     },
   };
 
@@ -399,7 +562,7 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
     return (
       <div style={styles.stepsContainer}>
         {steps.map((s, idx) => (
-          <React.Fragment key={s.key}>
+          <span key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {idx > 0 && <span style={styles.stepArrow}>→</span>}
             <span style={{
               ...styles.stepItem,
@@ -408,7 +571,7 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
             }}>
               {idx < currentStepIndex ? '✓' : `${idx + 1}.`} {s.label}
             </span>
-          </React.Fragment>
+          </span>
         ))}
       </div>
     );
@@ -431,7 +594,7 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
         <>
           <div style={{ textAlign: 'center' }}>
             <span style={styles.typeTag}>
-              <span>🐦</span>
+              <IconTwitter size={16} color="#1DA1F2" />
               <span>需要绑定 Twitter</span>
             </span>
           </div>
@@ -439,20 +602,14 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
           <p style={styles.desc}>
             完成此任务需要先绑定您的 Twitter 账号，以便验证您的任务完成状态。
           </p>
-          <div style={{
-            backgroundColor: theme.secondaryBg,
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 20,
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>🔗</div>
-            <p style={{ fontSize: 14, color: theme.hint, margin: 0 }}>
+          <div style={styles.secondaryBg}>
+            <div style={{ marginBottom: 8, textAlign: 'center' }}><IconLink size={32} color="#00e5ff" /></div>
+            <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0, textAlign: 'center' }}>
               绑定后我们将验证您的{getBindHint()}，确保奖励发放给真实用户
             </p>
           </div>
           <div style={styles.reward}>
-            奖励: {getRewardIcon()} +{quest.reward.amount} USDT
+            奖励: <IconDollar size={14} color="#39ff14" /> +{quest.reward.amount} USDT <IconStar size={14} color="#ffc107" /> +{getRewardDisplay(quest.reward).points} 积分
           </div>
           <div style={styles.buttons}>
             <AnimatedButton style={styles.cancelButton} onClick={onClose}>
@@ -462,7 +619,7 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
               style={{...styles.primaryButton, background: '#1DA1F2'}}
               onClick={() => setShowTwitterBind(true)}
             >
-              🐦 绑定 Twitter
+              <IconTwitter size={14} color="#fff" /> 绑定 Twitter
             </AnimatedButton>
           </div>
         </>
@@ -484,10 +641,136 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
     if (step === 'success') {
       return (
         <div style={styles.statusContainer}>
-          <div style={styles.statusIcon}>✅</div>
+          <div style={styles.statusIcon}><IconCheck size={56} color="#39ff14" /></div>
           <p style={styles.statusText}>验证成功！</p>
           <p style={styles.statusHint}>任务即将完成</p>
         </div>
+      );
+    }
+
+    // 等待审核状态
+    if (step === 'pending_review') {
+      return (
+        <>
+          <div style={styles.statusContainer}>
+            <div style={styles.statusIcon}><IconClock size={56} color="#ffc107" /></div>
+            <p style={styles.statusText}>截图已提交</p>
+            <p style={styles.statusHint}>{verifyMessage || '等待人工审核，审核通过后将自动发放奖励'}</p>
+          </div>
+          <div style={styles.reward}>
+            奖励: <IconDollar size={14} color="#39ff14" /> +{quest.reward.amount} USDT <IconStar size={14} color="#ffc107" /> +{getRewardDisplay(quest.reward).points} 积分
+          </div>
+          <div style={styles.buttons}>
+            <AnimatedButton style={styles.primaryButton} onClick={onClose}>
+              我知道了
+            </AnimatedButton>
+          </div>
+        </>
+      );
+    }
+
+    // 上传截图状态（点赞任务专用）
+    if (step === 'upload_proof') {
+      return (
+        <>
+          <div style={{ textAlign: 'center' }}>
+            <span style={styles.typeTag}>
+              <IconInfo size={16} color="#00e5ff" />
+              <span>上传截图</span>
+            </span>
+          </div>
+          <h2 style={styles.title}>{quest.title}</h2>
+          <p style={styles.desc}>请上传点赞成功的截图，审核通过后将发放奖励</p>
+
+          {/* 截图提示 */}
+          <div style={{
+            backgroundColor: 'rgba(29, 161, 242, 0.1)',
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 16,
+            fontSize: 13,
+            color: '#fff',
+            lineHeight: 1.5,
+            border: '1px solid rgba(29, 161, 242, 0.2)',
+          }}>
+            <div style={{ fontWeight: '600', marginBottom: 6, color: '#1DA1F2', display: 'flex', alignItems: 'center', gap: 6 }}><IconInfo size={14} color="#1DA1F2" /> 截图要求：</div>
+            <div>1. 截图需显示<strong>点赞按钮已点亮</strong>（红色心形）</div>
+            <div>2. 截图需显示<strong>推文作者</strong>（确认是指定推文）</div>
+            <div>3. 截图需显示<strong>您的登录账号</strong>（侧边栏或顶部）</div>
+            <div style={{ marginTop: 8, color: 'rgba(255, 255, 255, 0.5)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <IconInfo size={12} color="rgba(255, 255, 255, 0.5)" /> 推文太长？请使用手机的「长截图」或「滚动截图」功能
+            </div>
+          </div>
+
+          {/* 图片上传区域 */}
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.3)',
+            borderRadius: 12,
+            padding: 20,
+            marginBottom: 20,
+            textAlign: 'center',
+            border: `2px dashed ${proofImagePreview ? '#39ff14' : 'rgba(255, 255, 255, 0.2)'}`,
+            cursor: 'pointer',
+            position: 'relative',
+            minHeight: 120,
+          }} onClick={() => document.getElementById('proof-image-input').click()}>
+            <input
+              id="proof-image-input"
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              style={{ display: 'none' }}
+            />
+            {isUploading ? (
+              <>
+                <div style={styles.spinner} />
+                <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>上传中...</p>
+              </>
+            ) : proofImagePreview ? (
+              <>
+                <img
+                  src={proofImagePreview}
+                  alt="截图预览"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: 200,
+                    borderRadius: 8,
+                    marginBottom: 8,
+                  }}
+                />
+                <p style={{ fontSize: 12, color: '#39ff14', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                  <IconCheck size={12} color="#39ff14" /> 点击更换图片
+                </p>
+              </>
+            ) : (
+              <>
+                <div style={{ marginBottom: 8 }}><IconInfo size={40} color="rgba(255, 255, 255, 0.4)" /></div>
+                <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>
+                  点击选择截图
+                </p>
+              </>
+            )}
+          </div>
+
+          <div style={styles.reward}>
+            奖励: <IconDollar size={14} color="#39ff14" /> +{quest.reward.amount} USDT <IconStar size={14} color="#ffc107" /> +{getRewardDisplay(quest.reward).points} 积分
+          </div>
+          <div style={styles.buttons}>
+            <AnimatedButton style={styles.cancelButton} onClick={handleGoToTarget}>
+              重新点赞
+            </AnimatedButton>
+            <AnimatedButton
+              style={{
+                ...styles.verifyButton,
+                opacity: (proofImage && !isUploading) ? 1 : 0.5,
+              }}
+              onClick={handleSubmitProof}
+              disabled={!proofImage || isUploading || isLoading}
+            >
+              {isLoading ? '提交中...' : '提交审核'}
+            </AnimatedButton>
+          </div>
+        </>
       );
     }
 
@@ -496,7 +779,7 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
       return (
         <>
           <div style={styles.statusContainer}>
-            <div style={styles.statusIcon}>❌</div>
+            <div style={styles.statusIcon}><IconInfo size={56} color="#ff4da6" /></div>
             <p style={styles.statusText}>验证未通过</p>
             <p style={styles.statusHint}>{verifyMessage}</p>
           </div>
@@ -529,14 +812,14 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
         <>
           <div style={{ textAlign: 'center' }}>
             <span style={styles.typeTag}>
-              <span>{typeInfo.icon}</span>
+              {renderTypeIcon(16)}
               <span>{typeInfo.label}</span>
             </span>
           </div>
           <h2 style={styles.title}>{quest.title}</h2>
           <p style={styles.desc}>{getReadyVerifyHint()}</p>
           <div style={styles.reward}>
-            奖励: {getRewardIcon()} +{quest.reward.amount} USDT
+            奖励: <IconDollar size={14} color="#39ff14" /> +{quest.reward.amount} USDT <IconStar size={14} color="#ffc107" /> +{getRewardDisplay(quest.reward).points} 积分
           </div>
           <div style={styles.buttons}>
             <AnimatedButton style={styles.cancelButton} onClick={handleGoToTarget}>
@@ -566,7 +849,7 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
         <h2 style={styles.title}>{quest.title}</h2>
         <p style={styles.desc}>{quest.description}</p>
         <div style={styles.reward}>
-          奖励: {getRewardIcon()} +{quest.reward.amount} USDT
+          奖励: 💵 +{quest.reward.amount} USDT ⭐ +{getRewardDisplay(quest.reward).points} 积分
         </div>
         {renderSteps()}
         <div style={styles.buttons}>
@@ -591,6 +874,7 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
     <>
       <div style={styles.overlay} onClick={onClose}>
         <div style={styles.content} onClick={e => e.stopPropagation()}>
+          <div style={styles.glowEffect} />
           <div style={styles.handle} />
           {renderContent()}
         </div>
@@ -601,7 +885,6 @@ export function QuestModal({ quest, onClose, onSubmit, theme, api, twitterBound,
         <TwitterBindModal
           isOpen={showTwitterBind}
           onClose={() => setShowTwitterBind(false)}
-          theme={theme}
           api={api}
           t={t}
           onBindSuccess={handleTwitterBindSuccess}

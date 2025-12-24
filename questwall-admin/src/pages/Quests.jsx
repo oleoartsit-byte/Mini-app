@@ -113,11 +113,22 @@ export default function Quests() {
         ...quest,
         rewardAmount: quest.reward?.amount,
         rewardType: quest.reward?.type,
+        rewardPoints: quest.reward?.points,
       });
     } else {
       form.resetFields();
     }
     setModalVisible(true);
+  };
+
+  // 当 USDT 数量变化时，自动计算积分（如果积分未手动修改）
+  const handleRewardAmountChange = (value) => {
+    const currentPoints = form.getFieldValue('rewardPoints');
+    // 如果积分为空或等于旧的自动计算值，则自动更新
+    const oldAmount = form.getFieldValue('rewardAmount');
+    if (!currentPoints || currentPoints === Math.floor((oldAmount || 0) * 10)) {
+      form.setFieldValue('rewardPoints', Math.floor((value || 0) * 10));
+    }
   };
 
   // 提交表单
@@ -133,6 +144,7 @@ export default function Quests() {
         reward: {
           type: values.rewardType,
           amount: String(values.rewardAmount),
+          points: values.rewardPoints !== undefined ? values.rewardPoints : Math.floor(values.rewardAmount * 10),
         },
         targetUrl: values.targetUrl,
         channelId: values.channelId,
@@ -209,11 +221,12 @@ export default function Quests() {
     {
       title: '奖励',
       dataIndex: 'reward',
-      width: 120,
+      width: 150,
       render: (reward) => (
-        <span>
-          {reward?.amount} {reward?.type}
-        </span>
+        <div>
+          <div>{reward?.amount} {reward?.type}</div>
+          <div style={{ color: '#ff9500', fontSize: 12 }}>+{reward?.points || 0} 积分</div>
+        </div>
       ),
     },
     {
@@ -358,7 +371,7 @@ export default function Quests() {
               label="奖励类型"
               rules={[{ required: true }]}
             >
-              <Select style={{ width: 150 }}>
+              <Select style={{ width: 120 }}>
                 {REWARD_TYPES.map((t) => (
                   <Option key={t.value} value={t.value}>
                     {t.label}
@@ -369,10 +382,22 @@ export default function Quests() {
 
             <Form.Item
               name="rewardAmount"
-              label="奖励数量"
+              label="USDT 数量"
               rules={[{ required: true }]}
             >
-              <InputNumber min={0} style={{ width: 150 }} />
+              <InputNumber
+                min={0}
+                style={{ width: 120 }}
+                onChange={handleRewardAmountChange}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="rewardPoints"
+              label="积分奖励"
+              tooltip="默认为 USDT × 10，可自定义修改"
+            >
+              <InputNumber min={0} style={{ width: 120 }} placeholder="自动计算" />
             </Form.Item>
           </Space>
 

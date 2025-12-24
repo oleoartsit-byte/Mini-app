@@ -2,7 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { RiskService } from '../risk/risk.service';
-import { QuestStatus, PayoutStatus, BlacklistType } from '@prisma/client';
+import { QuestStatus, ActionStatus, PayoutStatus, BlacklistType, TutorialStatus, TutorialType } from '@prisma/client';
 export declare class AdminService {
     private prisma;
     private jwtService;
@@ -46,6 +46,7 @@ export declare class AdminService {
             reward: {
                 type: import(".prisma/client").$Enums.RewardType;
                 amount: string;
+                points: number;
                 asset: string;
             };
             limits: import("@prisma/client/runtime/library").JsonValue;
@@ -72,6 +73,7 @@ export declare class AdminService {
         reward: {
             type: import(".prisma/client").$Enums.RewardType;
             amount: string;
+            points: number;
             asset: string;
         };
         limits: import("@prisma/client/runtime/library").JsonValue;
@@ -314,6 +316,82 @@ export declare class AdminService {
         success: boolean;
         message: string;
     }>;
+    getPendingReviews(page?: number, pageSize?: number, status?: ActionStatus): Promise<{
+        items: {
+            id: string;
+            status: import(".prisma/client").$Enums.ActionStatus;
+            proofImage: string;
+            proof: import("@prisma/client/runtime/library").JsonValue;
+            submittedAt: Date;
+            user: {
+                id: string;
+                username: string;
+                tgId: string;
+                twitterUsername: string;
+                riskScore: number;
+            };
+            quest: {
+                id: string;
+                type: import(".prisma/client").$Enums.QuestType;
+                title: string;
+                targetUrl: string;
+                rewardType: import(".prisma/client").$Enums.RewardType;
+                rewardAmount: string;
+            };
+        }[];
+        total: number;
+        pendingCount: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    }>;
+    getReviewStats(): Promise<{
+        pending: number;
+        approvedToday: number;
+        rejectedToday: number;
+    }>;
+    getReviewDetail(actionId: bigint): Promise<{
+        id: string;
+        status: import(".prisma/client").$Enums.ActionStatus;
+        proofImage: string;
+        proof: import("@prisma/client/runtime/library").JsonValue;
+        twitterId: string;
+        claimedAt: Date;
+        submittedAt: Date;
+        verifiedAt: Date;
+        user: {
+            id: string;
+            username: string;
+            tgId: string;
+            twitterId: string;
+            twitterUsername: string;
+            riskScore: number;
+            createdAt: Date;
+            stats: Record<string, number>;
+        };
+        quest: {
+            id: string;
+            type: import(".prisma/client").$Enums.QuestType;
+            title: string;
+            description: string;
+            targetUrl: string;
+            rewardType: import(".prisma/client").$Enums.RewardType;
+            rewardAmount: string;
+            rewardAsset: string;
+        };
+    }>;
+    approveReview(actionId: bigint): Promise<{
+        success: boolean;
+        message: string;
+        reward: {
+            type: import(".prisma/client").$Enums.RewardType;
+            amount: string;
+        };
+    }>;
+    rejectReview(actionId: bigint, reason?: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getUserCompletedQuests(userId: bigint): Promise<{
         user: {
             id: string;
@@ -336,5 +414,89 @@ export declare class AdminService {
             totalCompleted: number;
             totalReward: string;
         };
+    }>;
+    getTutorials(page?: number, pageSize?: number, status?: TutorialStatus): Promise<{
+        items: {
+            id: string;
+            type: import(".prisma/client").$Enums.TutorialType;
+            category: string;
+            title: string;
+            titleEn: string;
+            description: string;
+            descriptionEn: string;
+            coverImage: string;
+            videoUrl: string;
+            icon: string;
+            sortOrder: number;
+            viewCount: number;
+            status: import(".prisma/client").$Enums.TutorialStatus;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    }>;
+    getTutorialDetail(id: bigint): Promise<{
+        id: string;
+        type: import(".prisma/client").$Enums.TutorialType;
+        category: string;
+        title: string;
+        titleEn: string;
+        description: string;
+        descriptionEn: string;
+        content: string;
+        contentEn: string;
+        coverImage: string;
+        videoUrl: string;
+        images: string[];
+        icon: string;
+        sortOrder: number;
+        viewCount: number;
+        status: import(".prisma/client").$Enums.TutorialStatus;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    createTutorial(data: {
+        type?: TutorialType;
+        category?: string;
+        title: string;
+        titleEn?: string;
+        description?: string;
+        descriptionEn?: string;
+        content?: string;
+        contentEn?: string;
+        coverImage?: string;
+        videoUrl?: string;
+        images?: string[];
+        icon?: string;
+        sortOrder?: number;
+    }): Promise<{
+        id: string;
+        message: string;
+    }>;
+    updateTutorial(id: bigint, data: {
+        type?: TutorialType;
+        category?: string;
+        title?: string;
+        titleEn?: string;
+        description?: string;
+        descriptionEn?: string;
+        content?: string;
+        contentEn?: string;
+        coverImage?: string;
+        videoUrl?: string;
+        images?: string[];
+        icon?: string;
+        sortOrder?: number;
+    }): Promise<{
+        message: string;
+    }>;
+    updateTutorialStatus(id: bigint, status: TutorialStatus): Promise<{
+        message: string;
+    }>;
+    deleteTutorial(id: bigint): Promise<{
+        message: string;
     }>;
 }

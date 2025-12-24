@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { TwitterService } from '../twitter/twitter.service';
 import { RiskService } from '../risk/risk.service';
 import { AuthService } from '../auth/auth.service';
+import { AiService } from '../ai/ai.service';
 import { QuestStatus, ActionStatus, QuestType, RewardType } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -27,16 +28,20 @@ interface CreateQuestDto {
 
 interface SubmitDto {
   proof: Record<string, any>;
+  proofImage?: string;  // 任务完成截图 URL
 }
 
 @Injectable()
 export class QuestsService {
+  private readonly logger = new Logger(QuestsService.name);
+
   constructor(
     private prisma: PrismaService,
     private telegramService: TelegramService,
     private twitterService: TwitterService,
     private riskService: RiskService,
     private authService: AuthService,
+    private aiService: AiService,
   ) {}
 
   // 根据语言获取本地化文本
@@ -96,6 +101,7 @@ export class QuestsService {
       reward: {
         type: quest.rewardType,
         amount: quest.rewardAmount.toString(),
+        points: quest.rewardPoints || Math.floor(Number(quest.rewardAmount) * 10),
         assetAddr: quest.rewardAsset
       },
       limits: quest.limits,
@@ -138,6 +144,7 @@ export class QuestsService {
       reward: {
         type: quest.rewardType,
         amount: quest.rewardAmount.toString(),
+        points: quest.rewardPoints || Math.floor(Number(quest.rewardAmount) * 10),
         assetAddr: quest.rewardAsset
       },
       limits: quest.limits,
@@ -340,6 +347,151 @@ export class QuestsService {
     // 3. 根据任务类型进行真实验证
     const verificationResult = await this.verifyQuest(userId, quest);
 
+    // 如果任务需要截图审核（如 LIKE_TWITTER）
+    if (verificationResult.requiresProofImage) {
+      // 检查是否提交了截图
+      if (!dto.proofImage) {
+        return {
+          success: false,
+          message: '请上传任务完成截图',
+          status: action.status,
+          requiresProofImage: true
+        };
+      }
+
+      // 使用 AI 验证截图
+      if (this.aiService.isAvailable() && user?.twitterUsername) {
+        this.logger.log(`AI 验证截图: 用户 @${user.twitterUsername}, 图片 ${dto.proofImage}`);
+
+        const aiResult = await this.aiService.verifyLikeScreenshot(
+          dto.proofImage,
+          user.twitterUsername,
+          quest.targetUrl || undefined
+        );
+
+        this.logger.log(`AI 验证结果: ${JSON.stringify(aiResult)}`);
+
+        // AI 验证通过且置信度高，直接发放奖励
+        if (aiResult.isValid && aiResult.confidence >= 0.8 && !aiResult.needsManualReview) {
+          // 使用任务配置的积分奖励（如果没配置则默认 USDT * 10）
+          const pointsToAdd = quest.rewardPoints || Math.floor(Number(quest.rewardAmount) * 10);
+
+          // 直接发放奖励（使用事务）
+          const result = await this.prisma.$transaction(async (tx) => {
+            const updatedAction = await tx.action.update({
+              where: { id: action.id },
+              data: {
+                proof: { ...dto.proof, aiVerification: JSON.parse(JSON.stringify(aiResult)) },
+                proofImage: dto.proofImage,
+                status: ActionStatus.REWARDED,
+                submittedAt: new Date(),
+                verifiedAt: new Date(),
+                twitterId: user.twitterId || undefined,
+              }
+            });
+
+            const reward = await tx.reward.create({
+              data: {
+                userId,
+                questId,
+                actionId: action.id,
+                type: quest.rewardType,
+                amount: quest.rewardAmount,
+                asset: quest.rewardAsset,
+                status: 'COMPLETED'
+              }
+            });
+
+            // 增加用户积分
+            await tx.user.update({
+              where: { id: userId },
+              data: { points: { increment: pointsToAdd } }
+            });
+
+            await this.processInviterCommission(tx, userId, quest.rewardAmount);
+
+            return { updatedAction, reward, pointsToAdd };
+          });
+
+          // 发送通知
+          if (user.tgId) {
+            const canNotify = await this.authService.canSendNotification(userId, 'reward');
+            if (canNotify) {
+              this.telegramService.sendQuestCompletedNotification(
+                user.tgId,
+                quest.title,
+                Number(quest.rewardAmount),
+                quest.rewardType
+              ).catch(err => console.error('发送奖励通知失败:', err));
+            }
+          }
+
+          return {
+            success: true,
+            message: `${aiResult.reason} 奖励已发放！`,
+            actionId: result.updatedAction.id.toString(),
+            status: result.updatedAction.status,
+            verified: true,
+            reward: {
+              type: quest.rewardType,
+              amount: quest.rewardAmount.toString(),
+              points: result.pointsToAdd
+            }
+          };
+        }
+
+        // AI 验证失败（用户名不匹配等明确拒绝的情况）
+        if (!aiResult.isValid && !aiResult.needsManualReview) {
+          return {
+            success: false,
+            message: aiResult.reason || '截图验证失败',
+            status: action.status,
+            verified: false
+          };
+        }
+
+        // 需要人工审核的情况：保存 AI 结果供参考
+        await this.prisma.action.update({
+          where: { id: action.id },
+          data: {
+            proof: { ...dto.proof, aiVerification: JSON.parse(JSON.stringify(aiResult)) },
+            proofImage: dto.proofImage,
+            status: ActionStatus.SUBMITTED,
+            submittedAt: new Date(),
+            twitterId: user.twitterId || undefined,
+          }
+        });
+
+        return {
+          success: true,
+          message: aiResult.reason || '截图已提交，等待审核',
+          status: ActionStatus.SUBMITTED,
+          verified: false,
+          pendingReview: true
+        };
+      }
+
+      // AI 服务不可用，走人工审核
+      await this.prisma.action.update({
+        where: { id: action.id },
+        data: {
+          proof: dto.proof,
+          proofImage: dto.proofImage,
+          status: ActionStatus.SUBMITTED,
+          submittedAt: new Date(),
+          twitterId: user?.twitterId || undefined,
+        }
+      });
+
+      return {
+        success: true,
+        message: '截图已提交，等待审核',
+        status: ActionStatus.SUBMITTED,
+        verified: false,
+        pendingReview: true
+      };
+    }
+
     if (!verificationResult.verified) {
       return {
         success: false,
@@ -349,6 +501,9 @@ export class QuestsService {
     }
 
     // 4. 验证通过，直接发放奖励（使用事务）
+    // 使用任务配置的积分奖励（如果没配置则默认 USDT * 10）
+    const pointsToAdd = quest.rewardPoints || Math.floor(Number(quest.rewardAmount) * 10);
+
     const result = await this.prisma.$transaction(async (tx) => {
       // 更新任务状态为 REWARDED，同时记录 twitterId（如果是 Twitter 任务）
       const updatedAction = await tx.action.update({
@@ -376,10 +531,16 @@ export class QuestsService {
         }
       });
 
-      // 4. 处理邀请返佣
+      // 增加用户积分
+      await tx.user.update({
+        where: { id: userId },
+        data: { points: { increment: pointsToAdd } }
+      });
+
+      // 处理邀请返佣
       await this.processInviterCommission(tx, userId, quest.rewardAmount);
 
-      return { updatedAction, reward };
+      return { updatedAction, reward, pointsToAdd };
     });
 
     // 5. 发送奖励发放通知（异步，检查用户偏好）
@@ -406,13 +567,14 @@ export class QuestsService {
       verified: true,
       reward: {
         type: quest.rewardType,
-        amount: quest.rewardAmount.toString()
+        amount: quest.rewardAmount.toString(),
+        points: result.pointsToAdd
       }
     };
   }
 
   // 验证任务完成情况
-  private async verifyQuest(userId: bigint, quest: any): Promise<{ verified: boolean; message: string }> {
+  private async verifyQuest(userId: bigint, quest: any): Promise<{ verified: boolean; message: string; requiresProofImage?: boolean }> {
     // 获取用户的 Telegram ID
     const verifyUser = await this.prisma.user.findUnique({
       where: { id: userId }
@@ -500,20 +662,12 @@ export class QuestsService {
         };
 
       case QuestType.LIKE_TWITTER:
-        // 验证是否点赞了推文
-        if (!quest.targetUrl) {
-          return { verified: true, message: 'Twitter 点赞任务完成！' };
-        }
-        if (verifyUser.twitterId) {
-          const likeResult = await this.twitterService.verifyLikeTask(
-            quest.targetUrl,
-            verifyUser.twitterId
-          );
-          return likeResult;
-        }
+        // 点赞任务：需要用户提交截图，等待人工审核
+        // 返回特殊状态，表示需要截图审核
         return {
           verified: false,
-          message: '请先在个人资料页绑定您的 Twitter 账号，以便验证点赞状态'
+          message: '需要提交截图',
+          requiresProofImage: true
         };
 
       case QuestType.COMMENT_TWITTER:

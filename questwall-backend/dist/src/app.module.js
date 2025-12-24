@@ -27,6 +27,8 @@ const invite_module_1 = require("./invite/invite.module");
 const payout_module_1 = require("./payout/payout.module");
 const geoip_module_1 = require("./geoip/geoip.module");
 const upload_module_1 = require("./upload/upload.module");
+const ai_module_1 = require("./ai/ai.module");
+const tutorials_module_1 = require("./tutorials/tutorials.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -52,6 +54,8 @@ exports.AppModule = AppModule = __decorate([
             payout_module_1.PayoutModule,
             geoip_module_1.GeoipModule,
             upload_module_1.UploadModule,
+            ai_module_1.AiModule,
+            tutorials_module_1.TutorialsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

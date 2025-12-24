@@ -1,6 +1,6 @@
-import React from 'react';
+import { IconTarget, IconGift, IconHistory, IconSearch, IconInfo, IconClock } from './icons/CyberpunkIcons';
 
-export function Loading({ theme }) {
+export function Loading() {
   const styles = {
     container: {
       display: 'flex',
@@ -9,12 +9,13 @@ export function Loading({ theme }) {
       padding: 40,
     },
     spinner: {
-      width: 24,
-      height: 24,
-      border: `3px solid ${theme.secondaryBg}`,
-      borderTopColor: theme.button,
+      width: 28,
+      height: 28,
+      border: '3px solid rgba(0, 229, 255, 0.15)',
+      borderTopColor: '#00e5ff',
       borderRadius: '50%',
       animation: 'spin 1s linear infinite',
+      boxShadow: '0 0 15px rgba(0, 229, 255, 0.3)',
     },
   };
 
@@ -25,28 +26,28 @@ export function Loading({ theme }) {
   );
 }
 
-// 美化版空状态组件
-export function EmptyState({ theme, type = 'quests', onRetry, t }) {
+// 空状态组件
+export function EmptyState({ type = 'quests', onRetry, t }) {
   const emptyConfigs = {
     quests: {
-      icon: '🎯',
-      title: t ? t('empty.noQuests') : '暂无可用任务',
-      description: t ? t('empty.noQuestsDesc') : '休息一下，稍后再来看看吧',
+      icon: <IconTarget size={38} color="#00e5ff" />,
+      title: t ? t('empty.noQuests') : 'No Quests Available',
+      description: t ? t('empty.noQuestsDesc') : 'Take a break and check back later',
     },
     rewards: {
-      icon: '🎁',
-      title: t ? t('empty.noRewards') : '还没有奖励记录',
-      description: t ? t('empty.noRewardsDesc') : '完成任务即可获得奖励',
+      icon: <IconGift size={38} color="#ffc107" />,
+      title: t ? t('empty.noRewards') : 'No Rewards Yet',
+      description: t ? t('empty.noRewardsDesc') : 'Complete quests to earn rewards',
     },
     history: {
-      icon: '📜',
-      title: t ? t('empty.noHistory') : '暂无交易记录',
-      description: t ? t('empty.noHistoryDesc') : '您的交易记录将显示在这里',
+      icon: <IconHistory size={38} color="#bf5fff" />,
+      title: t ? t('empty.noHistory') : 'No Transaction History',
+      description: t ? t('empty.noHistoryDesc') : 'Your transactions will appear here',
     },
     search: {
-      icon: '🔍',
-      title: t ? t('empty.noResults') : '未找到相关任务',
-      description: t ? t('empty.noResultsDesc') : '试试其他搜索词或筛选条件',
+      icon: <IconSearch size={38} color="#00e5ff" />,
+      title: t ? t('empty.noResults') : 'No Results Found',
+      description: t ? t('empty.noResultsDesc') : 'Try different search terms or filters',
     },
   };
 
@@ -55,53 +56,80 @@ export function EmptyState({ theme, type = 'quests', onRetry, t }) {
   const styles = {
     container: {
       textAlign: 'center',
-      padding: '60px 32px',
+      padding: '50px 28px',
       margin: '0 16px',
-      backgroundColor: theme.bg,
-      borderRadius: 20,
-      border: `1px solid ${theme.secondaryBg}`,
+      background: 'linear-gradient(145deg, rgba(25, 25, 45, 0.95), rgba(18, 18, 38, 0.95))',
+      borderRadius: 16,
+      border: '1px solid rgba(0, 229, 255, 0.15)',
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    glowOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0, 229, 255, 0.08) 0%, transparent 60%)',
+      pointerEvents: 'none',
     },
     iconWrapper: {
       width: 80,
       height: 80,
       margin: '0 auto 20px',
-      background: `linear-gradient(135deg, ${theme.secondaryBg} 0%, ${theme.bg} 100%)`,
-      borderRadius: 24,
+      background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(191, 95, 255, 0.15))',
+      borderRadius: 20,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: 40,
-      boxShadow: `0 8px 24px ${theme.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)'}`,
+      fontSize: 38,
+      boxShadow: '0 0 25px rgba(0, 229, 255, 0.15)',
+      border: '1px solid rgba(0, 229, 255, 0.2)',
+      position: 'relative',
+      zIndex: 1,
     },
     title: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       margin: 0,
       marginBottom: 8,
+      position: 'relative',
+      zIndex: 1,
     },
     description: {
-      fontSize: 14,
-      color: theme.hint,
+      fontSize: 13,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.5)',
       margin: 0,
       lineHeight: 1.5,
+      position: 'relative',
+      zIndex: 1,
     },
     retryButton: {
       marginTop: 24,
-      padding: '12px 32px',
-      fontSize: 14,
-      fontWeight: '600',
-      color: '#fff',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: '12px 30px',
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      color: '#000',
+      background: 'linear-gradient(135deg, #00e5ff, #bf5fff)',
       border: 'none',
-      borderRadius: 12,
+      borderRadius: 10,
       cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+      boxShadow: '0 0 15px rgba(0, 229, 255, 0.3)',
+      transition: 'all 0.3s ease',
+      position: 'relative',
+      zIndex: 1,
     },
   };
 
   return (
     <div style={styles.container}>
+      <div style={styles.glowOverlay} />
       <div style={styles.iconWrapper}>
         {config.icon}
       </div>
@@ -109,39 +137,38 @@ export function EmptyState({ theme, type = 'quests', onRetry, t }) {
       <p style={styles.description}>{config.description}</p>
       {onRetry && (
         <button style={styles.retryButton} onClick={onRetry}>
-          {t ? t('common.refresh') : '重新加载'}
+          {t ? t('common.refresh') : 'Refresh'}
         </button>
       )}
     </div>
   );
 }
 
-// 网络错误/加载失败组件
-export function ErrorState({ theme, error, onRetry, t }) {
+// 错误状态组件
+export function ErrorState({ error, onRetry, t }) {
   const errorConfigs = {
     network: {
-      icon: '📡',
-      title: t ? t('error.network') : '网络连接失败',
-      description: t ? t('error.networkDesc') : '请检查网络连接后重试',
+      icon: <IconInfo size={38} color="#ff4da6" />,
+      title: t ? t('error.network') : 'Network Error',
+      description: t ? t('error.networkDesc') : 'Please check your connection and try again',
     },
     server: {
-      icon: '🔧',
-      title: t ? t('error.server') : '服务器开小差了',
-      description: t ? t('error.serverDesc') : '工程师正在紧急修复中',
+      icon: <IconInfo size={38} color="#ff4da6" />,
+      title: t ? t('error.server') : 'Server Error',
+      description: t ? t('error.serverDesc') : 'Our engineers are working on it',
     },
     timeout: {
-      icon: '⏱️',
-      title: t ? t('error.timeout') : '请求超时',
-      description: t ? t('error.timeoutDesc') : '服务器响应时间过长，请稍后重试',
+      icon: <IconClock size={38} color="#ffc107" />,
+      title: t ? t('error.timeout') : 'Request Timeout',
+      description: t ? t('error.timeoutDesc') : 'Server took too long to respond',
     },
     unknown: {
-      icon: '😵',
-      title: t ? t('error.unknown') : '出错了',
-      description: t ? t('error.unknownDesc') : '发生了未知错误，请稍后重试',
+      icon: <IconInfo size={38} color="#ff4da6" />,
+      title: t ? t('error.unknown') : 'Something Went Wrong',
+      description: t ? t('error.unknownDesc') : 'An unexpected error occurred',
     },
   };
 
-  // 根据错误类型选择配置
   const getErrorType = () => {
     if (!error) return 'unknown';
     const msg = error.message?.toLowerCase() || '';
@@ -156,65 +183,96 @@ export function ErrorState({ theme, error, onRetry, t }) {
   const styles = {
     container: {
       textAlign: 'center',
-      padding: '60px 32px',
+      padding: '50px 28px',
       margin: '0 16px',
-      backgroundColor: theme.bg,
-      borderRadius: 20,
-      border: `1px solid ${theme.secondaryBg}`,
+      background: 'linear-gradient(145deg, rgba(25, 25, 45, 0.95), rgba(18, 18, 38, 0.95))',
+      borderRadius: 16,
+      border: '1px solid rgba(255, 77, 166, 0.2)',
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    glowOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 77, 166, 0.08) 0%, transparent 60%)',
+      pointerEvents: 'none',
     },
     iconWrapper: {
       width: 80,
       height: 80,
       margin: '0 auto 20px',
-      background: `linear-gradient(135deg, rgba(255, 59, 48, 0.15) 0%, rgba(255, 149, 0, 0.1) 100%)`,
-      borderRadius: 24,
+      background: 'linear-gradient(135deg, rgba(255, 77, 166, 0.15), rgba(255, 193, 7, 0.15))',
+      borderRadius: 20,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: 40,
+      fontSize: 38,
+      boxShadow: '0 0 25px rgba(255, 77, 166, 0.15)',
+      border: '1px solid rgba(255, 77, 166, 0.2)',
+      position: 'relative',
+      zIndex: 1,
     },
     title: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       margin: 0,
       marginBottom: 8,
+      position: 'relative',
+      zIndex: 1,
     },
     description: {
-      fontSize: 14,
-      color: theme.hint,
+      fontSize: 13,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.5)',
       margin: 0,
       lineHeight: 1.5,
       marginBottom: 8,
+      position: 'relative',
+      zIndex: 1,
     },
     errorDetail: {
-      fontSize: 12,
-      color: theme.hint,
-      opacity: 0.7,
+      fontSize: 10,
+      fontFamily: "'Roboto Mono', monospace",
+      color: '#ff4da6',
       margin: 0,
-      padding: '8px 16px',
-      backgroundColor: theme.secondaryBg,
-      borderRadius: 8,
+      padding: '8px 14px',
+      backgroundColor: 'rgba(255, 77, 166, 0.1)',
+      borderRadius: 6,
       display: 'inline-block',
       maxWidth: '100%',
       wordBreak: 'break-all',
+      border: '1px solid rgba(255, 77, 166, 0.15)',
+      position: 'relative',
+      zIndex: 1,
     },
     retryButton: {
       marginTop: 24,
-      padding: '12px 32px',
-      fontSize: 14,
-      fontWeight: '600',
+      padding: '12px 30px',
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      textTransform: 'uppercase',
+      letterSpacing: 1,
       color: '#fff',
-      background: 'linear-gradient(135deg, #ff6b6b 0%, #ff9500 100%)',
+      background: 'linear-gradient(135deg, #ff4da6, #bf5fff)',
       border: 'none',
-      borderRadius: 12,
+      borderRadius: 10,
       cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
+      boxShadow: '0 0 15px rgba(255, 77, 166, 0.3)',
+      transition: 'all 0.3s ease',
+      position: 'relative',
+      zIndex: 1,
     },
   };
 
   return (
     <div style={styles.container}>
+      <div style={styles.glowOverlay} />
       <div style={styles.iconWrapper}>
         {config.icon}
       </div>
@@ -225,15 +283,15 @@ export function ErrorState({ theme, error, onRetry, t }) {
       )}
       {onRetry && (
         <button style={styles.retryButton} onClick={onRetry}>
-          {t ? t('common.retry') : '重试'}
+          {t ? t('common.retry') : 'Retry'}
         </button>
       )}
     </div>
   );
 }
 
-// 离线状态提示条
-export function OfflineBanner({ theme, t }) {
+// 离线提示条
+export function OfflineBanner({ t }) {
   const styles = {
     banner: {
       position: 'fixed',
@@ -241,17 +299,21 @@ export function OfflineBanner({ theme, t }) {
       left: 0,
       right: 0,
       padding: '12px 16px',
-      backgroundColor: '#ff9500',
+      background: 'linear-gradient(135deg, #ff9500, #ff4da6)',
       color: '#fff',
       textAlign: 'center',
-      fontSize: 13,
-      fontWeight: '600',
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      textTransform: 'uppercase',
+      letterSpacing: 1,
       zIndex: 3000,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 8,
+      gap: 10,
       paddingTop: 'max(12px, env(safe-area-inset-top))',
+      boxShadow: '0 4px 20px rgba(255, 149, 0, 0.4)',
     },
     icon: {
       fontSize: 16,
@@ -260,8 +322,8 @@ export function OfflineBanner({ theme, t }) {
 
   return (
     <div style={styles.banner}>
-      <span style={styles.icon}>📡</span>
-      <span>{t ? t('offline.message') : '网络已断开，请检查连接'}</span>
+      <IconInfo size={16} color="#fff" />
+      <span>{t ? t('offline.message') : 'OFFLINE - Check Connection'}</span>
     </div>
   );
 }

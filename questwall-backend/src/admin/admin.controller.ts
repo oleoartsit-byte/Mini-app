@@ -15,7 +15,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { JwtService } from '@nestjs/jwt';
-import { QuestStatus, PayoutStatus, BlacklistType } from '@prisma/client';
+import { QuestStatus, PayoutStatus, BlacklistType, ActionStatus, TutorialStatus } from '@prisma/client';
 
 // 简单的管理员认证守卫
 class AdminAuthGuard {
@@ -382,5 +382,146 @@ export class AdminController {
   ) {
     this.validateAdmin(authHeader);
     return this.adminService.removeFromBlacklist(BigInt(id));
+  }
+
+  // ==================== 截图审核接口 ====================
+
+  @Get('reviews')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取待审核截图列表' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, type: String, description: 'SUBMITTED | VERIFIED | REJECTED' })
+  async getPendingReviews(
+    @Headers('authorization') authHeader: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('status') status?: string,
+  ) {
+    this.validateAdmin(authHeader);
+    const pageNum = parseInt(page) || 1;
+    const pageSizeNum = parseInt(pageSize) || 10;
+    const actionStatus = status ? (status as ActionStatus) : undefined;
+    return this.adminService.getPendingReviews(pageNum, pageSizeNum, actionStatus);
+  }
+
+  @Get('reviews/stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取审核统计' })
+  async getReviewStats(@Headers('authorization') authHeader: string) {
+    this.validateAdmin(authHeader);
+    return this.adminService.getReviewStats();
+  }
+
+  @Get('reviews/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取审核详情' })
+  async getReviewDetail(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.getReviewDetail(BigInt(id));
+  }
+
+  @Post('reviews/:id/approve')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '审核通过（发放奖励）' })
+  async approveReview(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.approveReview(BigInt(id));
+  }
+
+  @Post('reviews/:id/reject')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '审核拒绝' })
+  async rejectReview(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.rejectReview(BigInt(id), body.reason);
+  }
+
+  // ==================== 教程管理接口 ====================
+
+  @Get('tutorials')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取教程列表（管理员）' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  async getTutorials(
+    @Headers('authorization') authHeader: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('status') status?: string,
+  ) {
+    this.validateAdmin(authHeader);
+    const pageNum = parseInt(page) || 1;
+    const pageSizeNum = parseInt(pageSize) || 10;
+    const tutorialStatus = status ? (status as TutorialStatus) : undefined;
+    return this.adminService.getTutorials(pageNum, pageSizeNum, tutorialStatus);
+  }
+
+  @Get('tutorials/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取教程详情（管理员）' })
+  async getTutorialDetail(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.getTutorialDetail(BigInt(id));
+  }
+
+  @Post('tutorials')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '创建教程（管理员）' })
+  async createTutorial(
+    @Headers('authorization') authHeader: string,
+    @Body() body: any,
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.createTutorial(body);
+  }
+
+  @Put('tutorials/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '更新教程（管理员）' })
+  async updateTutorial(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.updateTutorial(BigInt(id), body);
+  }
+
+  @Patch('tutorials/:id/status')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '更新教程状态（管理员）' })
+  async updateTutorialStatus(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: { status: TutorialStatus },
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.updateTutorialStatus(BigInt(id), body.status);
+  }
+
+  @Delete('tutorials/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '删除教程（管理员）' })
+  async deleteTutorial(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.deleteTutorial(BigInt(id));
   }
 }

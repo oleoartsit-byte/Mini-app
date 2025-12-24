@@ -18,6 +18,8 @@ import { InviteModule } from './invite/invite.module';
 import { PayoutModule } from './payout/payout.module';
 import { GeoipModule } from './geoip/geoip.module';
 import { UploadModule } from './upload/upload.module';
+import { AiModule } from './ai/ai.module';
+import { TutorialsModule } from './tutorials/tutorials.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { UploadModule } from './upload/upload.module';
     PayoutModule,
     GeoipModule,
     UploadModule,
+    AiModule,
+    TutorialsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

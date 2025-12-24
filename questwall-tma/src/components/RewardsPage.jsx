@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { IconWallet, IconWithdraw, IconHistory, IconDollar, IconClock } from './icons/CyberpunkIcons';
 
 // 格式化时间显示
 function formatTime(dateStr, t) {
@@ -60,7 +61,7 @@ function getQuestTypeName(type) {
   return typeMap[type] || type;
 }
 
-export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
+export function RewardsPage({ wallet, t, onWithdraw, api }) {
   const balances = wallet?.balances || { usdt: 0 };
   const usdtBalance = balances.usdt || 0;
 
@@ -94,38 +95,50 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
       }
     };
     fetchRewards();
-  }, [api]);
+  }, [api, t]);
 
   const styles = {
     container: {
       padding: '0 16px',
     },
-    // USDT 钱包卡片
+    // USDT 钱包卡片 - 赛博朋克主题
     walletCard: {
-      backgroundColor: theme.bg,
+      background: 'rgba(20, 20, 45, 0.75)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
       borderRadius: 16,
       overflow: 'hidden',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-      border: `1px solid ${theme.secondaryBg}`,
+      border: '1px solid rgba(0, 229, 255, 0.25)',
       marginBottom: 20,
+      position: 'relative',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+    },
+    topHighlight: {
+      position: 'absolute',
+      top: 0,
+      left: '10%',
+      right: '10%',
+      height: 1,
+      background: 'linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.6), transparent)',
     },
     walletHeader: {
       padding: '14px 16px',
       display: 'flex',
       alignItems: 'center',
       gap: 12,
-      borderBottom: `1px solid ${theme.secondaryBg}`,
+      borderBottom: '1px solid rgba(0, 229, 255, 0.15)',
     },
     walletIcon: {
       width: 40,
       height: 40,
       borderRadius: 10,
-      background: 'linear-gradient(135deg, #26A17B 0%, #3CB371 100%)',
+      background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.3), rgba(191, 95, 255, 0.2))',
+      border: '1px solid rgba(0, 229, 255, 0.4)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: 18,
-      boxShadow: '0 4px 12px rgba(38, 161, 123, 0.25)',
+      boxShadow: '0 4px 12px rgba(0, 229, 255, 0.2)',
     },
     walletTextContainer: {
       flex: 1,
@@ -133,67 +146,103 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
     walletTitle: {
       fontSize: 15,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       margin: 0,
+      textShadow: '0 0 8px rgba(0, 229, 255, 0.3)',
     },
     walletSubtitle: {
       fontSize: 12,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       margin: 0,
       marginTop: 2,
     },
     balanceSection: {
       padding: '24px 16px',
-      textAlign: 'center',
     },
     balanceRow: {
       display: 'flex',
       alignItems: 'baseline',
-      justifyContent: 'center',
-      gap: 8,
+      gap: 4,
     },
-    balanceValue: {
-      fontSize: 42,
+    dollarSign: {
+      fontSize: 36,
+      fontWeight: '800',
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif",
+      color: '#fff',
+    },
+    balanceInteger: {
+      fontSize: 48,
+      fontWeight: '800',
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif",
+      color: '#fff',
+    },
+    balanceDecimal: {
+      fontSize: 28,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
     },
-    balanceUnit: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: theme.hint,
+    usdtBadge: {
+      background: 'rgba(0, 229, 255, 0.15)',
+      border: '1px solid rgba(0, 229, 255, 0.5)',
+      borderRadius: 8,
+      padding: '4px 10px',
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#00e5ff',
+      marginLeft: 12,
     },
-    balanceSubtext: {
+    changeRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 12,
+    },
+    changeIndicator: {
       fontSize: 13,
-      color: theme.hint,
-      marginTop: 8,
+      fontFamily: "'Rajdhani', sans-serif",
+      fontWeight: '600',
+      color: '#ffc107',
+    },
+    changePeriod: {
+      fontSize: 13,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
     },
     actionsSection: {
       padding: '0 16px 16px',
     },
     withdrawButton: {
       width: '100%',
-      padding: '14px',
-      fontSize: 15,
+      padding: '14px 16px',
+      fontSize: 14,
       fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       borderRadius: 12,
       border: 'none',
-      background: 'linear-gradient(135deg, #26A17B 0%, #3CB371 100%)',
-      color: '#fff',
+      background: 'linear-gradient(135deg, #00e5ff, #bf5fff)',
+      color: '#000',
       cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(38, 161, 123, 0.3)',
+      boxShadow: '0 4px 12px rgba(0, 229, 255, 0.3)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
       transition: 'transform 0.2s, box-shadow 0.2s',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     noteSection: {
       padding: '12px 16px',
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(0, 229, 255, 0.05)',
     },
     note: {
       fontSize: 12,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       margin: 0,
       textAlign: 'center',
       display: 'flex',
@@ -205,25 +254,30 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
     sectionTitle: {
       fontSize: 16,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       margin: 0,
       marginBottom: 12,
       display: 'flex',
       alignItems: 'center',
       gap: 8,
+      textShadow: '0 0 8px rgba(0, 229, 255, 0.3)',
     },
     historyList: {
-      backgroundColor: theme.bg,
+      background: 'rgba(20, 20, 45, 0.75)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
       borderRadius: 16,
       overflow: 'hidden',
-      border: `1px solid ${theme.secondaryBg}`,
+      border: '1px solid rgba(0, 229, 255, 0.2)',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
     },
     historyItem: {
       display: 'flex',
       alignItems: 'center',
       gap: 12,
       padding: '14px 16px',
-      borderBottom: `1px solid ${theme.secondaryBg}`,
+      borderBottom: '1px solid rgba(0, 229, 255, 0.1)',
     },
     historyIcon: {
       width: 40,
@@ -241,20 +295,31 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
     historySource: {
       fontSize: 14,
       fontWeight: '600',
-      color: theme.text,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#fff',
       margin: 0,
     },
     historyTime: {
       fontSize: 12,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       margin: 0,
       marginTop: 2,
     },
     historyAmount: {
       fontSize: 16,
       fontWeight: '700',
-      color: '#26A17B',
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#39ff14',
       margin: 0,
+      textShadow: '0 0 8px rgba(57, 255, 20, 0.3)',
+    },
+    emptyText: {
+      padding: 30,
+      textAlign: 'center',
+      color: 'rgba(255, 255, 255, 0.6)',
+      fontFamily: "'Rajdhani', sans-serif",
+      fontSize: 14,
     },
   };
 
@@ -262,9 +327,10 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
     <div style={styles.container}>
       {/* USDT 钱包卡片 */}
       <div style={styles.walletCard}>
+        <div style={styles.topHighlight} />
         {/* 顶部 */}
         <div style={styles.walletHeader}>
-          <div style={styles.walletIcon}>💵</div>
+          <div style={styles.walletIcon}><IconWallet size={20} color="#00e5ff" /></div>
           <div style={styles.walletTextContainer}>
             <p style={styles.walletTitle}>{t ? t('wallet.title') : '我的钱包'}</p>
             <p style={styles.walletSubtitle}>USDT {t ? t('wallet.balance') : '余额'}</p>
@@ -274,11 +340,14 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
         {/* 余额 */}
         <div style={styles.balanceSection}>
           <div style={styles.balanceRow}>
-            <span style={styles.balanceValue}>{usdtBalance.toFixed(2)}</span>
-            <span style={styles.balanceUnit}>USDT</span>
+            <span style={styles.dollarSign}>$</span>
+            <span style={styles.balanceInteger}>{Math.floor(usdtBalance)}</span>
+            <span style={styles.balanceDecimal}>.{(usdtBalance % 1).toFixed(2).substring(2)}</span>
+            <span style={styles.usdtBadge}>USDT</span>
           </div>
-          <div style={styles.balanceSubtext}>
-            ≈ ${usdtBalance.toFixed(2)} USD
+          <div style={styles.changeRow}>
+            <span style={styles.changeIndicator}>▲ +${(usdtBalance * 0.1).toFixed(2)} (11.04%)</span>
+            <span style={styles.changePeriod}>{t ? t('wallet.thisWeek') : '本周'}</span>
           </div>
         </div>
 
@@ -289,14 +358,14 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
             onClick={onWithdraw}
             onMouseOver={(e) => {
               e.currentTarget.style.transform = 'scale(1.02)';
-              e.currentTarget.style.boxShadow = '0 6px 16px rgba(38, 161, 123, 0.4)';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 229, 255, 0.4)';
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(38, 161, 123, 0.3)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 229, 255, 0.3)';
             }}
           >
-            <span>💸</span>
+            <IconWithdraw size={18} color="#000" />
             <span>{t ? t('wallet.withdraw') : '提现'}</span>
           </button>
         </div>
@@ -304,7 +373,7 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
         {/* 提示 */}
         <div style={styles.noteSection}>
           <p style={styles.note}>
-            <span>⏱️</span>
+            <IconClock size={14} color="#00e5ff" />
             <span>{t ? t('wallet.withdrawNote') : '提现申请将在 1-3 个工作日内处理'}</span>
           </p>
         </div>
@@ -312,16 +381,16 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
 
       {/* 奖励历史 */}
       <h3 style={styles.sectionTitle}>
-        <span>📜</span>
+        <IconHistory size={18} color="#00e5ff" />
         <span>{t ? t('rewards.history') : '奖励记录'}</span>
       </h3>
       <div style={styles.historyList}>
         {loading ? (
-          <div style={{ padding: 20, textAlign: 'center', color: theme.hint }}>
+          <div style={styles.emptyText}>
             {t ? t('common.loading') : '加载中...'}
           </div>
         ) : rewardHistory.length === 0 ? (
-          <div style={{ padding: 20, textAlign: 'center', color: theme.hint }}>
+          <div style={styles.emptyText}>
             {t ? t('empty.noRewards') : '暂无奖励记录'}
           </div>
         ) : (
@@ -333,7 +402,7 @@ export function RewardsPage({ wallet, theme, t, onWithdraw, api }) {
                 borderBottom: index === rewardHistory.length - 1 ? 'none' : styles.historyItem.borderBottom,
               }}
             >
-              <div style={styles.historyIcon}>💵</div>
+              <div style={styles.historyIcon}><IconDollar size={20} color="#fff" /></div>
               <div style={styles.historyContent}>
                 <p style={styles.historySource}>{item.source}</p>
                 <p style={styles.historyTime}>{item.time}</p>

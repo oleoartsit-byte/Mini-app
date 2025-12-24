@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatedButton } from './PageTransition';
+import { IconTwitter, IconCheck } from './icons/CyberpunkIcons';
 
-export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, onUnbindSuccess, t }) {
-  // step: input | verification | verifying | success | error | bound
+export function TwitterBindModal({ isOpen, onClose, api, onBindSuccess, onUnbindSuccess, t }) {
+  // step: input | verification | posted | verifying | success | error | bound
   const [step, setStep] = useState('input');
+  const [hasPosted, setHasPosted] = useState(false);  // 用户是否已点击发布推文
   const [username, setUsername] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [codeExpiresAt, setCodeExpiresAt] = useState(null);
@@ -27,6 +29,7 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
           setMessage('');
           setUsername('');
           setVerificationCode('');
+          setHasPosted(false);
         }
       });
     }
@@ -62,14 +65,21 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // 打开 Twitter 引用转发官方推文
+  // 打开 Twitter 帖子页面，让用户自己引用转发
   const handleOpenTwitterPost = () => {
-    // QuestWall 官方验证推文 URL
-    const officialTweetUrl = 'https://x.com/AQuestWall/status/1872993292285673648';
-    // 预填充推文内容（引用转发 + 验证码）
-    const tweetText = `${verificationCode}\n\nVerifying my account for @AQuestWall #QuestWall`;
-    const quoteUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(officialTweetUrl)}`;
-    window.open(quoteUrl, '_blank');
+    // 直接跳转到目标推文页面（测试用，后续换成官方账号推文）
+    const targetTweetUrl = 'https://x.com/MoSalah/status/2003237101740130408';
+
+    // 使用 Telegram WebApp API 打开外部链接（更好的控制）
+    if (window.Telegram?.WebApp?.openLink) {
+      window.Telegram.WebApp.openLink(targetTweetUrl);
+    } else {
+      window.open(targetTweetUrl, '_blank');
+    }
+
+    // 标记用户已点击，切换到验证步骤
+    setHasPosted(true);
+    setStep('posted');
   };
 
   // 验证并绑定
@@ -91,7 +101,7 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
         onClose();
       }, 1500);
     } else {
-      setStep('verification');
+      setStep('posted');  // 验证失败回到 posted 步骤，不要回到 verification
       // 如果是已被其他用户绑定过的错误，使用特定的提示
       if (result.code === 'TWITTER_ALREADY_OWNED') {
         setMessage(t ? t('twitter.alreadyOwned') : result.message);
@@ -126,6 +136,7 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
     setStep('input');
     setMessage('');
     setVerificationCode('');
+    setHasPosted(false);
   };
 
   if (!isOpen) return null;
@@ -137,31 +148,37 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      backdropFilter: 'blur(4px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 2000,
     },
     content: {
-      backgroundColor: theme.bg,
+      background: 'linear-gradient(145deg, rgba(25, 25, 45, 0.98), rgba(18, 18, 38, 0.98))',
       borderRadius: 16,
       padding: 24,
       width: '90%',
       maxWidth: 360,
       maxHeight: '90vh',
       overflowY: 'auto',
+      border: '1px solid rgba(0, 229, 255, 0.2)',
+      boxShadow: '0 0 30px rgba(0, 229, 255, 0.1)',
     },
     title: {
       fontSize: 18,
-      fontWeight: '600',
-      color: theme.text,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       marginBottom: 8,
       textAlign: 'center',
+      textShadow: '0 0 10px rgba(0, 229, 255, 0.3)',
     },
     subtitle: {
       fontSize: 14,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.5)',
       marginBottom: 20,
       textAlign: 'center',
       lineHeight: 1.5,
@@ -194,49 +211,55 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
       justifyContent: 'center',
       fontSize: 14,
       fontWeight: '600',
+      fontFamily: "'Orbitron', sans-serif",
       flexShrink: 0,
     },
     stepText: {
       fontSize: 14,
-      color: theme.text,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#fff',
       lineHeight: 1.4,
     },
     codeBox: {
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(29, 161, 242, 0.1)',
       borderRadius: 12,
       padding: '16px',
       marginBottom: 16,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
+      border: '1px solid rgba(29, 161, 242, 0.3)',
     },
     codeText: {
       fontSize: 18,
       fontWeight: '700',
       color: '#1DA1F2',
-      fontFamily: 'monospace',
+      fontFamily: "'Roboto Mono', monospace",
     },
     copyButton: {
       padding: '8px 16px',
-      fontSize: 14,
-      fontWeight: '600',
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       borderRadius: 8,
       border: 'none',
-      backgroundColor: copied ? '#22c55e' : '#1DA1F2',
-      color: '#fff',
+      backgroundColor: copied ? '#39ff14' : '#1DA1F2',
+      color: copied ? '#000' : '#fff',
       cursor: 'pointer',
     },
     inputContainer: {
       display: 'flex',
       alignItems: 'center',
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(0, 0, 0, 0.3)',
       borderRadius: 12,
       padding: '12px 16px',
       marginBottom: 16,
+      border: '1px solid rgba(0, 229, 255, 0.15)',
     },
     inputPrefix: {
       fontSize: 16,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.4)',
       marginRight: 4,
     },
     input: {
@@ -244,60 +267,67 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
       border: 'none',
       backgroundColor: 'transparent',
       fontSize: 16,
-      color: theme.text,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#fff',
       outline: 'none',
     },
     button: {
       width: '100%',
       padding: '14px',
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 14,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       borderRadius: 12,
       border: 'none',
       background: '#1DA1F2',
       color: '#fff',
       cursor: 'pointer',
       marginBottom: 12,
+      boxShadow: '0 0 15px rgba(29, 161, 242, 0.3)',
     },
     secondaryButton: {
       width: '100%',
       padding: '14px',
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 14,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       borderRadius: 12,
-      border: 'none',
-      backgroundColor: theme.secondaryBg,
-      color: theme.text,
+      border: '1px solid rgba(255, 255, 255, 0.15)',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: '#fff',
       cursor: 'pointer',
       marginBottom: 12,
     },
     unbindButton: {
       width: '100%',
       padding: '14px',
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 14,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       borderRadius: 12,
-      border: 'none',
-      backgroundColor: theme.secondaryBg,
-      color: '#ef4444',
+      border: '1px solid rgba(255, 77, 166, 0.3)',
+      backgroundColor: 'rgba(255, 77, 166, 0.1)',
+      color: '#ff4da6',
       cursor: 'pointer',
       marginTop: 12,
     },
     message: {
       fontSize: 14,
-      color: step === 'error' ? '#ef4444' : theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: step === 'error' ? '#ff4da6' : 'rgba(255, 255, 255, 0.5)',
       textAlign: 'center',
       marginBottom: 16,
       lineHeight: 1.4,
     },
     boundCard: {
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(29, 161, 242, 0.1)',
       borderRadius: 12,
       padding: 16,
       marginBottom: 16,
       display: 'flex',
       alignItems: 'center',
       gap: 12,
+      border: '1px solid rgba(29, 161, 242, 0.3)',
     },
     twitterIcon: {
       width: 40,
@@ -311,21 +341,24 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
     },
     boundUsername: {
       fontSize: 16,
-      fontWeight: '600',
-      color: theme.text,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
     },
     boundLabel: {
-      fontSize: 13,
-      color: theme.hint,
+      fontSize: 12,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#39ff14',
     },
     spinner: {
       width: 32,
       height: 32,
-      border: `3px solid ${theme.secondaryBg}`,
-      borderTopColor: '#1DA1F2',
+      border: '3px solid rgba(0, 229, 255, 0.2)',
+      borderTopColor: '#00e5ff',
       borderRadius: '50%',
       animation: 'spin 1s linear infinite',
       margin: '20px auto',
+      boxShadow: '0 0 15px rgba(0, 229, 255, 0.3)',
     },
     successIcon: {
       fontSize: 48,
@@ -334,7 +367,8 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
     },
     expiryNote: {
       fontSize: 12,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.4)',
       textAlign: 'center',
       marginBottom: 16,
     },
@@ -356,7 +390,7 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
     if (step === 'success') {
       return (
         <>
-          <div style={styles.successIcon}>✅</div>
+          <div style={styles.successIcon}><IconCheck size={48} color="#39ff14" /></div>
           <h3 style={styles.title}>{t ? t('twitter.success') : '绑定成功'}</h3>
           <p style={styles.message}>{message}</p>
         </>
@@ -373,7 +407,7 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
           </p>
 
           <div style={styles.boundCard}>
-            <div style={styles.twitterIcon}>🐦</div>
+            <div style={styles.twitterIcon}><IconTwitter size={24} color="#1DA1F2" /></div>
             <div>
               <div style={styles.boundUsername}>@{boundInfo.username}</div>
               <div style={styles.boundLabel}>{t ? t('twitter.verified') : '已验证绑定'}</div>
@@ -392,7 +426,7 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
       );
     }
 
-    // 验证码步骤
+    // 验证码步骤 - 显示验证码和转发按钮
     if (step === 'verification') {
       return (
         <>
@@ -409,7 +443,7 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
           <div style={styles.codeBox}>
             <span style={styles.codeText}>{verificationCode}</span>
             <button style={styles.copyButton} onClick={handleCopyCode}>
-              {copied ? '✓' : (t ? t('common.copy') : '复制')}
+              {copied ? <IconCheck size={12} color="#39ff14" /> : (t ? t('common.copy') : '复制')}
             </button>
           </div>
 
@@ -417,22 +451,7 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
           <div style={styles.stepNumber}>
             <div style={styles.stepCircle}>2</div>
             <div style={styles.stepText}>
-              {t ? t('twitter.step2') : '发布包含验证码的推文'}
-            </div>
-          </div>
-
-          <AnimatedButton
-            style={{ ...styles.secondaryButton, marginBottom: 16 }}
-            onClick={handleOpenTwitterPost}
-          >
-            🐦 {t ? t('twitter.postTweet') : '发布推文'}
-          </AnimatedButton>
-
-          {/* 步骤 3: 验证 */}
-          <div style={styles.stepNumber}>
-            <div style={styles.stepCircle}>3</div>
-            <div style={styles.stepText}>
-              {t ? t('twitter.step3') : '发布后点击验证'}
+              转发官方推文并带上验证码
             </div>
           </div>
 
@@ -442,8 +461,58 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
 
           {message && <p style={styles.message}>{message}</p>}
 
+          <AnimatedButton style={styles.button} onClick={handleOpenTwitterPost}>
+            <IconTwitter size={14} color="#fff" /> 转发推文
+          </AnimatedButton>
+          <AnimatedButton style={styles.secondaryButton} onClick={handleBack}>
+            {t ? t('common.back') : '返回'}
+          </AnimatedButton>
+        </>
+      );
+    }
+
+    // 已发布推文 - 显示验证并绑定按钮
+    if (step === 'posted') {
+      return (
+        <>
+          <h3 style={styles.title}>{t ? t('twitter.verifyTitle') : '验证账号所有权'}</h3>
+
+          <div style={styles.stepNumber}>
+            <div style={{ ...styles.stepCircle, backgroundColor: '#39ff14' }}><IconCheck size={12} color="#000" /></div>
+            <div style={styles.stepText}>
+              已复制验证码
+            </div>
+          </div>
+
+          <div style={styles.stepNumber}>
+            <div style={{ ...styles.stepCircle, backgroundColor: '#39ff14' }}><IconCheck size={12} color="#000" /></div>
+            <div style={styles.stepText}>
+              已跳转到 Twitter
+            </div>
+          </div>
+
+          {/* 步骤 3: 验证 */}
+          <div style={styles.stepNumber}>
+            <div style={styles.stepCircle}>3</div>
+            <div style={styles.stepText}>
+              发布推文后点击验证
+            </div>
+          </div>
+
+          <p style={styles.expiryNote}>
+            ⏱️ 请确保推文已发布，然后点击下方按钮验证
+          </p>
+
+          {message && <p style={styles.message}>{message}</p>}
+
           <AnimatedButton style={styles.button} onClick={handleVerifyAndBind}>
-            ✓ {t ? t('twitter.verifyAndBind') : '验证并绑定'}
+            <IconCheck size={14} color="#000" /> 验证并绑定
+          </AnimatedButton>
+          <AnimatedButton
+            style={styles.secondaryButton}
+            onClick={handleOpenTwitterPost}
+          >
+            <IconTwitter size={14} color="#fff" /> 重新转发
           </AnimatedButton>
           <AnimatedButton style={styles.secondaryButton} onClick={handleBack}>
             {t ? t('common.back') : '返回'}
@@ -475,7 +544,7 @@ export function TwitterBindModal({ isOpen, onClose, theme, api, onBindSuccess, o
         {message && <p style={styles.message}>{message}</p>}
 
         <AnimatedButton style={styles.button} onClick={handleGetCode}>
-          🐦 {t ? t('twitter.next') : '下一步'}
+          <IconTwitter size={14} color="#fff" /> {t ? t('twitter.next') : '下一步'}
         </AnimatedButton>
         <AnimatedButton style={styles.secondaryButton} onClick={onClose}>
           {t ? t('common.cancel') : '取消'}

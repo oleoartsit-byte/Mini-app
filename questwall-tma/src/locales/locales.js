@@ -30,8 +30,31 @@ export const locales = {
     nav: {
       home: '首页',
       quests: '任务',
+      tutorials: '教程',
       rewards: '奖励',
       profile: '我的',
+    },
+
+    // 教程
+    tutorials: {
+      title: '官方教程',
+      subtitle: '学习如何完成各类任务',
+      empty: '暂无教程',
+      watchVideo: '观看视频',
+      images: '张图片',
+      category: {
+        all: '全部',
+        telegram: 'Telegram',
+        twitter: 'Twitter',
+        wallet: '钱包',
+        invite: '邀请',
+        other: '其他',
+      },
+      type: {
+        article: '文章',
+        video: '视频',
+        imageText: '图文',
+      },
     },
 
     // 首页
@@ -53,6 +76,12 @@ export const locales = {
       authFailed: '认证失败',
       authPending: '认证中...',
       devMode: '开发模式',
+      // 等级称号
+      newbie: '新手玩家',
+      advanced: '进阶玩家',
+      elite: '精英玩家',
+      master: '大师玩家',
+      legendary: '传奇玩家',
     },
 
     // 签到
@@ -129,6 +158,12 @@ export const locales = {
       note: '提现申请将在 24 小时内处理',
     },
 
+    // 奖励
+    reward: {
+      points: '积分',
+      usdt: 'USDT',
+    },
+
     // 任务
     quest: {
       title: '任务中心',
@@ -140,7 +175,7 @@ export const locales = {
       complete: '完成',
       verify: '验证',
       alreadyCompleted: '你已经完成过这个任务了！',
-      completedSuccess: '任务完成！+{amount} {type}',
+      completedSuccess: '任务完成！+{amount} USDT +{points} 积分',
       participants: '{count} 人已参与',
       // 任务类型
       types: {
@@ -254,6 +289,10 @@ export const locales = {
       you: '你',
       questsCompleted: '{count} 任务完成',
       myRank: '我的排名',
+      tasksTab: '任务榜',
+      invitesTab: '邀请榜',
+      invites: '邀请人数',
+      inviteCount: '{count} 人邀请',
     },
 
     // 交易历史
@@ -315,6 +354,7 @@ export const locales = {
       noHistoryDesc: '您的交易记录将显示在这里',
       noResults: '未找到相关任务',
       noResultsDesc: '试试其他搜索词或筛选条件',
+      noInvites: '暂无邀请数据',
     },
 
     // 错误状态
@@ -364,8 +404,31 @@ export const locales = {
     nav: {
       home: 'Home',
       quests: 'Quests',
+      tutorials: 'Guide',
       rewards: 'Rewards',
       profile: 'Profile',
+    },
+
+    // Tutorials
+    tutorials: {
+      title: 'Official Guide',
+      subtitle: 'Learn how to complete various tasks',
+      empty: 'No tutorials yet',
+      watchVideo: 'Watch Video',
+      images: 'images',
+      category: {
+        all: 'All',
+        telegram: 'Telegram',
+        twitter: 'Twitter',
+        wallet: 'Wallet',
+        invite: 'Invite',
+        other: 'Other',
+      },
+      type: {
+        article: 'Article',
+        video: 'Video',
+        imageText: 'Gallery',
+      },
     },
 
     // Home
@@ -387,6 +450,12 @@ export const locales = {
       authFailed: 'Auth Failed',
       authPending: 'Verifying...',
       devMode: 'Dev Mode',
+      // Level Titles
+      newbie: 'Newbie',
+      advanced: 'Advanced',
+      elite: 'Elite',
+      master: 'Master',
+      legendary: 'Legendary',
     },
 
     // Check-in
@@ -463,6 +532,12 @@ export const locales = {
       note: 'Withdraw request will be processed within 24 hours',
     },
 
+    // Reward
+    reward: {
+      points: 'Points',
+      usdt: 'USDT',
+    },
+
     // Quest
     quest: {
       title: 'Quest Center',
@@ -474,7 +549,7 @@ export const locales = {
       complete: 'Complete',
       verify: 'Verify',
       alreadyCompleted: 'You have already completed this quest!',
-      completedSuccess: 'Quest completed! +{amount} {type}',
+      completedSuccess: 'Quest completed! +{amount} USDT +{points} Points',
       participants: '{count} participants',
       // Quest Types
       types: {
@@ -588,6 +663,10 @@ export const locales = {
       you: 'You',
       questsCompleted: '{count} quests completed',
       myRank: 'My Rank',
+      tasksTab: 'Tasks',
+      invitesTab: 'Invites',
+      invites: 'Invites',
+      inviteCount: '{count} invited',
     },
 
     // Transaction History
@@ -649,6 +728,7 @@ export const locales = {
       noHistoryDesc: 'Your transactions will appear here',
       noResults: 'No quests found',
       noResultsDesc: 'Try different keywords or filters',
+      noInvites: 'No invite data yet',
     },
 
     // Error States

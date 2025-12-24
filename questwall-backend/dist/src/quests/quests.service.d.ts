@@ -3,6 +3,7 @@ import { TelegramService } from '../telegram/telegram.service';
 import { TwitterService } from '../twitter/twitter.service';
 import { RiskService } from '../risk/risk.service';
 import { AuthService } from '../auth/auth.service';
+import { AiService } from '../ai/ai.service';
 import { QuestStatus, ActionStatus, QuestType, RewardType } from '@prisma/client';
 interface CreateQuestDto {
     type: QuestType;
@@ -22,6 +23,7 @@ interface CreateQuestDto {
 }
 interface SubmitDto {
     proof: Record<string, any>;
+    proofImage?: string;
 }
 export declare class QuestsService {
     private prisma;
@@ -29,7 +31,9 @@ export declare class QuestsService {
     private twitterService;
     private riskService;
     private authService;
-    constructor(prisma: PrismaService, telegramService: TelegramService, twitterService: TwitterService, riskService: RiskService, authService: AuthService);
+    private aiService;
+    private readonly logger;
+    constructor(prisma: PrismaService, telegramService: TelegramService, twitterService: TwitterService, riskService: RiskService, authService: AuthService, aiService: AiService);
     private getLocalizedText;
     findAll(page?: number, pageSize?: number, userId?: bigint, lang?: string, countryCode?: string | null): Promise<{
         items: {
@@ -40,6 +44,7 @@ export declare class QuestsService {
             reward: {
                 type: import(".prisma/client").$Enums.RewardType;
                 amount: string;
+                points: number;
                 assetAddr: string;
             };
             limits: import("@prisma/client/runtime/library").JsonValue;
@@ -62,6 +67,7 @@ export declare class QuestsService {
         reward: {
             type: import(".prisma/client").$Enums.RewardType;
             amount: string;
+            points: number;
             assetAddr: string;
         };
         limits: import("@prisma/client/runtime/library").JsonValue;
@@ -104,22 +110,37 @@ export declare class QuestsService {
         message: string;
         status: "REWARDED";
         verified: boolean;
+        requiresProofImage?: undefined;
         actionId?: undefined;
         reward?: undefined;
+        pendingReview?: undefined;
     } | {
         success: boolean;
         message: string;
         status: "SUBMITTED" | "REJECTED";
         verified?: undefined;
+        requiresProofImage?: undefined;
         actionId?: undefined;
         reward?: undefined;
+        pendingReview?: undefined;
     } | {
         success: boolean;
         message: string;
         status: "CLAIMED" | "VERIFIED";
         verified?: undefined;
+        requiresProofImage?: undefined;
         actionId?: undefined;
         reward?: undefined;
+        pendingReview?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        status: "CLAIMED" | "VERIFIED";
+        requiresProofImage: boolean;
+        verified?: undefined;
+        actionId?: undefined;
+        reward?: undefined;
+        pendingReview?: undefined;
     } | {
         success: boolean;
         message: string;
@@ -129,7 +150,28 @@ export declare class QuestsService {
         reward: {
             type: import(".prisma/client").$Enums.RewardType;
             amount: string;
+            points: number;
         };
+        requiresProofImage?: undefined;
+        pendingReview?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        status: "CLAIMED" | "VERIFIED";
+        verified: boolean;
+        requiresProofImage?: undefined;
+        actionId?: undefined;
+        reward?: undefined;
+        pendingReview?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        status: "SUBMITTED";
+        verified: boolean;
+        pendingReview: boolean;
+        requiresProofImage?: undefined;
+        actionId?: undefined;
+        reward?: undefined;
     }>;
     private verifyQuest;
     reward(userId: bigint, questId: bigint): Promise<{

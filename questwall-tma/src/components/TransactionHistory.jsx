@@ -1,29 +1,26 @@
 import { useState, useEffect } from 'react';
+import { IconQuest, IconGift, IconUsers, IconDollar, IconWithdraw, IconHistory } from './icons/CyberpunkIcons';
 
 const getTypeIcon = (type) => {
   switch (type) {
-    case 'quest': return '🎯';
-    case 'checkin': return '📅';
-    case 'invite': return '👥';
-    case 'transfer': return '💸';
-    case 'withdraw': return '📤';
-    default: return '💰';
+    case 'quest': return <IconQuest size={22} color="#00e5ff" />;
+    case 'checkin': return <IconGift size={22} color="#ffc107" />;
+    case 'invite': return <IconUsers size={22} color="#bf5fff" />;
+    case 'transfer': return <IconDollar size={22} color="#39ff14" />;
+    case 'withdraw': return <IconWithdraw size={22} color="#ff4da6" />;
+    default: return <IconDollar size={22} color="#00e5ff" />;
   }
 };
 
-const getTypeLabel = (type) => {
-  switch (type) {
-    case 'quest': return '任务奖励';
-    case 'checkin': return '签到奖励';
-    case 'invite': return '邀请奖励';
-    case 'transfer': return '转入';
-    case 'withdraw': return '提现';
-    default: return '其他';
-  }
-};
-
-const getCurrencyIcon = () => {
-  return '💵'; // 统一使用 USDT
+const getTypeLabel = (type, t) => {
+  const labels = {
+    quest: t ? t('transaction.quest') : '任务奖励',
+    checkin: t ? t('transaction.checkin') : '签到奖励',
+    invite: t ? t('transaction.invite') : '邀请奖励',
+    transfer: t ? t('transaction.transfer') : '转入',
+    withdraw: t ? t('transaction.withdraw') : '提现',
+  };
+  return labels[type] || (t ? t('transaction.other') : '其他');
 };
 
 // 格式化时间为真实日期
@@ -37,7 +34,7 @@ function formatTime(dateStr) {
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
-export function TransactionHistory({ theme, api }) {
+export function TransactionHistory({ api, t }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -82,39 +79,37 @@ export function TransactionHistory({ theme, api }) {
     title: {
       fontSize: 16,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       margin: 0,
       display: 'flex',
       alignItems: 'center',
       gap: 8,
-    },
-    filterButton: {
-      padding: '6px 12px',
-      fontSize: 12,
-      fontWeight: '500',
-      borderRadius: 8,
-      border: `1px solid ${theme.hint}30`,
-      backgroundColor: 'transparent',
-      color: theme.hint,
-      cursor: 'pointer',
+      textShadow: '0 0 8px rgba(0, 229, 255, 0.3)',
     },
     listCard: {
-      backgroundColor: theme.bg,
+      backgroundColor: '#0f0f23',
+      background: 'linear-gradient(165deg, #191932 0%, #0f0f23 100%)',
       borderRadius: 16,
       overflow: 'hidden',
-      border: `1px solid ${theme.secondaryBg}`,
+      border: '1px solid rgba(0, 229, 255, 0.25)',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+      position: 'relative',
+      zIndex: 10,
+      isolation: 'isolate',
     },
     item: {
       display: 'flex',
       alignItems: 'center',
       padding: '14px 16px',
-      borderBottom: `1px solid ${theme.secondaryBg}`,
+      borderBottom: '1px solid rgba(0, 229, 255, 0.1)',
     },
     iconBox: {
       width: 44,
       height: 44,
       borderRadius: 12,
-      backgroundColor: theme.secondaryBg,
+      background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(191, 95, 255, 0.15))',
+      border: '1px solid rgba(0, 229, 255, 0.2)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -127,8 +122,9 @@ export function TransactionHistory({ theme, api }) {
     },
     itemTitle: {
       fontSize: 14,
-      fontWeight: '500',
-      color: theme.text,
+      fontWeight: '600',
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#fff',
       margin: 0,
       whiteSpace: 'nowrap',
       overflow: 'hidden',
@@ -141,15 +137,18 @@ export function TransactionHistory({ theme, api }) {
       marginTop: 4,
     },
     typeLabel: {
-      fontSize: 12,
-      color: theme.hint,
-      padding: '2px 6px',
-      backgroundColor: theme.secondaryBg,
-      borderRadius: 4,
+      fontSize: 11,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#00e5ff',
+      padding: '2px 8px',
+      background: 'rgba(0, 229, 255, 0.1)',
+      borderRadius: 6,
+      border: '1px solid rgba(0, 229, 255, 0.2)',
     },
     time: {
-      fontSize: 12,
-      color: theme.hint,
+      fontSize: 11,
+      fontFamily: "'Roboto Mono', monospace",
+      color: 'rgba(255, 255, 255, 0.4)',
     },
     amount: {
       display: 'flex',
@@ -157,25 +156,37 @@ export function TransactionHistory({ theme, api }) {
       gap: 4,
       fontSize: 16,
       fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
     },
     positive: {
-      color: theme.success || '#34c759',
+      color: '#39ff14',
+      textShadow: '0 0 10px rgba(57, 255, 20, 0.4)',
     },
     negative: {
-      color: theme.danger || '#ff3b30',
+      color: '#ff4da6',
+      textShadow: '0 0 10px rgba(255, 77, 166, 0.4)',
     },
     emptyState: {
-      padding: '40px 20px',
+      padding: '50px 20px',
       textAlign: 'center',
     },
     emptyIcon: {
       fontSize: 48,
-      marginBottom: 12,
+      marginBottom: 16,
+      filter: 'drop-shadow(0 0 10px rgba(0, 229, 255, 0.3))',
     },
     emptyText: {
       fontSize: 14,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.4)',
       margin: 0,
+    },
+    loadingText: {
+      padding: 30,
+      textAlign: 'center',
+      color: 'rgba(255, 255, 255, 0.4)',
+      fontFamily: "'Rajdhani', sans-serif",
+      fontSize: 14,
     },
   };
 
@@ -184,13 +195,13 @@ export function TransactionHistory({ theme, api }) {
       <div style={styles.container}>
         <div style={styles.header}>
           <h3 style={styles.title}>
-            <span>📊</span>
-            <span>交易历史</span>
+            <IconHistory size={18} color="#00e5ff" />
+            <span>{t ? t('transaction.history') : '交易历史'}</span>
           </h3>
         </div>
         <div style={styles.listCard}>
-          <div style={{ padding: 20, textAlign: 'center', color: theme.hint }}>
-            加载中...
+          <div style={styles.loadingText}>
+            {t ? t('common.loading') : '加载中...'}
           </div>
         </div>
       </div>
@@ -202,14 +213,14 @@ export function TransactionHistory({ theme, api }) {
       <div style={styles.container}>
         <div style={styles.header}>
           <h3 style={styles.title}>
-            <span>📊</span>
-            <span>交易历史</span>
+            <IconHistory size={18} color="#00e5ff" />
+            <span>{t ? t('transaction.history') : '交易历史'}</span>
           </h3>
         </div>
         <div style={styles.listCard}>
           <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>📭</div>
-            <p style={styles.emptyText}>暂无交易记录</p>
+            <div style={styles.emptyIcon}><IconHistory size={48} color="rgba(0, 229, 255, 0.4)" /></div>
+            <p style={styles.emptyText}>{t ? t('empty.noHistory') : '暂无交易记录'}</p>
           </div>
         </div>
       </div>
@@ -220,8 +231,8 @@ export function TransactionHistory({ theme, api }) {
     <div style={styles.container}>
       <div style={styles.header}>
         <h3 style={styles.title}>
-          <span>📊</span>
-          <span>交易历史</span>
+          <IconHistory size={18} color="#00e5ff" />
+          <span>{t ? t('transaction.history') : '交易历史'}</span>
         </h3>
       </div>
 
@@ -242,7 +253,7 @@ export function TransactionHistory({ theme, api }) {
               <div style={styles.info}>
                 <p style={styles.itemTitle}>{tx.title}</p>
                 <div style={styles.itemMeta}>
-                  <span style={styles.typeLabel}>{getTypeLabel(tx.type)}</span>
+                  <span style={styles.typeLabel}>{getTypeLabel(tx.type, t)}</span>
                   <span style={styles.time}>{tx.time}</span>
                 </div>
               </div>
@@ -251,7 +262,7 @@ export function TransactionHistory({ theme, api }) {
                 ...(isPositive ? styles.positive : styles.negative),
               }}>
                 <span>{isPositive ? '+' : '-'}{tx.amount}</span>
-                <span>{getCurrencyIcon(tx.currency)}</span>
+                <span style={{ fontSize: 12, opacity: 0.8 }}><IconDollar size={14} color="currentColor" /></span>
               </div>
             </div>
           );

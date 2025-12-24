@@ -45,8 +45,8 @@ export declare class RiskController {
     }[]>;
     getBlacklist(type?: string): Promise<{
         id: string;
-        createdAt: Date;
         type: import(".prisma/client").$Enums.BlacklistType;
+        createdAt: Date;
         value: string;
         reason: string | null;
         expiresAt: Date | null;

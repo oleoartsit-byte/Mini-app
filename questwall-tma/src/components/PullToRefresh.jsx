@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-export function PullToRefresh({ onRefresh, children, theme }) {
+export function PullToRefresh({ onRefresh, children }) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const containerRef = useRef(null);
@@ -82,9 +82,10 @@ export function PullToRefresh({ onRefresh, children, theme }) {
 
   const iconStyle = {
     fontSize: 20,
-    color: theme?.hint || '#8e8e93',
+    color: '#00e5ff',
     transform: `rotate(${pullDistance * 3}deg)`,
     transition: isPulling.current ? 'none' : 'transform 0.3s ease',
+    textShadow: '0 0 10px rgba(0, 229, 255, 0.5)',
   };
 
   return (
@@ -102,10 +103,11 @@ export function PullToRefresh({ onRefresh, children, theme }) {
           <div style={{
             width: 24,
             height: 24,
-            border: `2px solid ${theme?.hint || '#8e8e93'}30`,
-            borderTopColor: theme?.link || '#007aff',
+            border: '2px solid rgba(0, 229, 255, 0.2)',
+            borderTopColor: '#00e5ff',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
+            boxShadow: '0 0 10px rgba(0, 229, 255, 0.3)',
           }} />
         ) : (
           <span style={iconStyle}>

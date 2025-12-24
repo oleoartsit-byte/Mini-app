@@ -1,6 +1,43 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { NotificationSettings } from './NotificationSettings';
 import { ThemeSelector } from './ThemeSelector';
+import { IconTwitter, IconBell, IconGlobe, IconMedal, IconCheck, IconFire, IconUsers, IconArrowRight } from './icons/CyberpunkIcons';
+
+// 等级经验配置（与 UserCard 保持一致）
+const LEVEL_CONFIG = {
+  baseExp: 3,      // 1级升2级需要的任务数
+  expIncrement: 2, // 每升一级增加的任务数
+  maxLevel: 99,    // 最大等级
+};
+
+// 计算到达某等级所需的总任务数
+const getTotalExpForLevel = (level) => {
+  if (level <= 1) return 0;
+  const n = level - 1;
+  const firstTerm = LEVEL_CONFIG.baseExp;
+  const lastTerm = LEVEL_CONFIG.baseExp + (n - 1) * LEVEL_CONFIG.expIncrement;
+  return Math.floor(n * (firstTerm + lastTerm) / 2);
+};
+
+// 根据完成任务数计算等级和经验百分比
+const calculateLevelInfo = (completedCount) => {
+  let level = 1;
+  while (level < LEVEL_CONFIG.maxLevel) {
+    const expNeededForNextLevel = getTotalExpForLevel(level + 1);
+    if (completedCount < expNeededForNextLevel) {
+      break;
+    }
+    level++;
+  }
+  const expForCurrentLevel = getTotalExpForLevel(level);
+  const expForNextLevel = getTotalExpForLevel(level + 1);
+  const expInCurrentLevel = completedCount - expForCurrentLevel;
+  const expNeededForNextLevel = expForNextLevel - expForCurrentLevel;
+  const expPercent = level >= LEVEL_CONFIG.maxLevel
+    ? 100
+    : Math.min(99, Math.floor((expInCurrentLevel / expNeededForNextLevel) * 100));
+  return { level, expPercent, currentExp: expInCurrentLevel, nextLevelExp: expNeededForNextLevel };
+};
 
 export function ProfilePage({
   user,
@@ -9,7 +46,6 @@ export function ProfilePage({
   completedQuests,
   checkInData,
   inviteData,
-  theme,
   token,
   // 多语言相关
   t,
@@ -24,17 +60,21 @@ export function ProfilePage({
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
-  const balances = wallet?.balances || { stars: 0, ton: 0, usdt: 0, points: 0 };
 
-  // 计算等级（每100积分升1级）
-  const totalPoints = Math.floor(
-    (balances.stars || 0) * 1 +
-    (balances.ton || 0) * 100 +
-    (balances.usdt || 0) * 10 +
-    (balances.points || 0) * 1
-  );
-  const level = Math.floor(totalPoints / 100) + 1;
-  const levelProgress = (totalPoints % 100);
+  // 基于完成任务数计算等级
+  const completedCount = completedQuests?.length || 0;
+  const levelInfo = calculateLevelInfo(completedCount);
+  const level = levelInfo.level;
+  const levelProgress = levelInfo.expPercent;
+
+  // 根据等级获取称号
+  const getLevelTitle = (level) => {
+    if (level >= 50) return t ? t('user.legendary') : '传奇玩家';
+    if (level >= 30) return t ? t('user.master') : '大师玩家';
+    if (level >= 15) return t ? t('user.elite') : '精英玩家';
+    if (level >= 5) return t ? t('user.advanced') : '进阶玩家';
+    return t ? t('user.newbie') : '新手玩家';
+  };
 
   const getUserDisplayName = () => {
     if (user) {
@@ -45,10 +85,10 @@ export function ProfilePage({
 
   const getStatusInfo = () => {
     switch (authStatus) {
-      case 'success': return { color: '#34c759', text: t ? t('user.authSuccess') : '已验证' };
-      case 'failed': return { color: '#ff3b30', text: t ? t('user.authFailed') : '验证失败' };
-      case 'dev': return { color: '#ff9500', text: t ? t('user.devMode') : '开发模式' };
-      default: return { color: '#8e8e93', text: t ? t('user.authPending') : '验证中...' };
+      case 'success': return { color: '#39ff14', text: t ? t('user.authSuccess') : '已验证' };
+      case 'failed': return { color: '#ff4da6', text: t ? t('user.authFailed') : '验证失败' };
+      case 'dev': return { color: '#ffc107', text: t ? t('user.devMode') : '开发模式' };
+      default: return { color: 'rgba(255, 255, 255, 0.5)', text: t ? t('user.authPending') : '验证中...' };
     }
   };
 
@@ -63,21 +103,9 @@ export function ProfilePage({
     return '简体中文';
   };
 
-  // 获取主题名称
-  const getThemeName = () => {
-    if (t) {
-      switch (theme.themeMode) {
-        case 'light': return t('theme.light');
-        case 'dark': return t('theme.dark');
-        default: return t('theme.system');
-      }
-    }
-    return theme.themeMode === 'light' ? '浅色' : theme.themeMode === 'dark' ? '深色' : '跟随系统';
-  };
-
   const menuItems = [
     {
-      icon: '🐦',
+      icon: <IconTwitter size={20} color="#1DA1F2" />,
       labelKey: 'profile.twitter',
       label: t ? t('profile.twitter') : 'Twitter 绑定',
       badge: twitterBound ? `@${twitterUsername}` : (t ? t('profile.notBound') : '未绑定'),
@@ -85,25 +113,18 @@ export function ProfilePage({
       action: onTwitterBind
     },
     {
-      icon: '🔔',
+      icon: <IconBell size={20} color="#ffc107" />,
       labelKey: 'notifications.title',
       label: t ? t('notifications.title') : '通知设置',
       badge: null,
       action: () => setShowNotificationSettings(true)
     },
     {
-      icon: '🌐',
+      icon: <IconGlobe size={20} color="#00e5ff" />,
       labelKey: 'profile.language',
       label: t ? t('profile.language') : '语言',
       badge: getCurrentLocaleName(),
       action: () => setShowLanguageSelector(true)
-    },
-    {
-      icon: '🎨',
-      labelKey: 'profile.theme',
-      label: t ? t('profile.theme') : '主题',
-      badge: getThemeName(),
-      action: () => setShowThemeSelector(true)
     },
   ];
 
@@ -112,33 +133,51 @@ export function ProfilePage({
       padding: '0 16px',
     },
     profileCard: {
-      backgroundColor: theme.bg,
+      background: 'linear-gradient(145deg, rgba(25, 25, 45, 0.95), rgba(18, 18, 38, 0.95))',
       borderRadius: 20,
       padding: '24px 20px',
       marginBottom: 16,
       textAlign: 'center',
-      border: `1px solid ${theme.secondaryBg}`,
+      border: '1px solid rgba(0, 229, 255, 0.2)',
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    profileGlow: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0, 229, 255, 0.1) 0%, transparent 60%)',
+      pointerEvents: 'none',
     },
     avatar: {
       width: 80,
       height: 80,
       borderRadius: 24,
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #00e5ff 0%, #bf5fff 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      color: '#fff',
+      color: '#000',
       fontSize: 32,
       fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       margin: '0 auto 16px',
-      boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)',
+      boxShadow: '0 8px 24px rgba(0, 229, 255, 0.4)',
+      position: 'relative',
+      zIndex: 1,
     },
     userName: {
-      fontSize: 22,
+      fontSize: 20,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       margin: 0,
       marginBottom: 8,
+      textShadow: '0 0 15px rgba(0, 229, 255, 0.3)',
+      position: 'relative',
+      zIndex: 1,
     },
     statusBadge: {
       display: 'inline-flex',
@@ -146,17 +185,24 @@ export function ProfilePage({
       gap: 6,
       padding: '6px 14px',
       borderRadius: 20,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '600',
+      fontFamily: "'Rajdhani', sans-serif",
       color: statusInfo.color,
-      backgroundColor: `${statusInfo.color}15`,
+      backgroundColor: `${statusInfo.color}20`,
+      border: `1px solid ${statusInfo.color}40`,
       marginBottom: 16,
+      position: 'relative',
+      zIndex: 1,
     },
     levelSection: {
       marginTop: 16,
       padding: '16px',
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(0, 229, 255, 0.05)',
       borderRadius: 14,
+      border: '1px solid rgba(0, 229, 255, 0.15)',
+      position: 'relative',
+      zIndex: 1,
     },
     levelHeader: {
       display: 'flex',
@@ -170,23 +216,34 @@ export function ProfilePage({
       gap: 6,
       fontSize: 14,
       fontWeight: '700',
-      color: theme.bg !== '#ffffff' ? '#7d8aff' : '#667eea',
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#ffc107',
+      textShadow: '0 0 10px rgba(255, 193, 7, 0.4)',
+    },
+    levelTitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#bf5fff',
+      marginLeft: 4,
     },
     levelPoints: {
       fontSize: 12,
-      color: theme.hint,
+      fontFamily: "'Roboto Mono', monospace",
+      color: 'rgba(255, 255, 255, 0.6)',
     },
     progressBar: {
       height: 8,
-      backgroundColor: `${theme.hint}30`,
+      backgroundColor: 'rgba(0, 229, 255, 0.1)',
       borderRadius: 4,
       overflow: 'hidden',
     },
     progressFill: {
       height: '100%',
-      background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(90deg, #00e5ff 0%, #bf5fff 100%)',
       borderRadius: 4,
       transition: 'width 0.5s ease',
+      boxShadow: '0 0 10px rgba(0, 229, 255, 0.5)',
     },
     statsGrid: {
       display: 'grid',
@@ -195,41 +252,56 @@ export function ProfilePage({
       marginBottom: 16,
     },
     statCard: {
-      backgroundColor: theme.bg,
+      background: 'linear-gradient(165deg, #191932 0%, #0f0f23 100%)',
       borderRadius: 16,
       padding: '16px 12px',
       textAlign: 'center',
-      border: `1px solid ${theme.secondaryBg}`,
+      border: '1px solid rgba(0, 229, 255, 0.25)',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+      position: 'relative',
+      overflow: 'hidden',
     },
     statIcon: {
       fontSize: 24,
       marginBottom: 8,
+      filter: 'drop-shadow(0 0 8px rgba(0, 229, 255, 0.3))',
     },
     statValue: {
       fontSize: 20,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#00e5ff',
       margin: 0,
+      textShadow: '0 0 10px rgba(0, 229, 255, 0.4)',
     },
     statLabel: {
       fontSize: 11,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       margin: 0,
       marginTop: 4,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     menuCard: {
-      backgroundColor: theme.bg,
+      backgroundColor: '#0f0f23',
+      background: 'linear-gradient(165deg, #191932 0%, #0f0f23 100%)',
       borderRadius: 16,
       overflow: 'hidden',
-      border: `1px solid ${theme.secondaryBg}`,
+      border: '1px solid rgba(0, 229, 255, 0.25)',
       marginBottom: 16,
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+      position: 'relative',
+      zIndex: 10,
+      isolation: 'isolate',
     },
     menuItem: {
       display: 'flex',
       alignItems: 'center',
       padding: '14px 16px',
-      borderBottom: `1px solid ${theme.secondaryBg}`,
+      borderBottom: '1px solid rgba(0, 229, 255, 0.1)',
       cursor: 'pointer',
+      backgroundColor: 'inherit',
     },
     menuIcon: {
       fontSize: 20,
@@ -237,31 +309,21 @@ export function ProfilePage({
     },
     menuLabel: {
       flex: 1,
-      fontSize: 15,
-      fontWeight: '500',
-      color: theme.text,
+      fontSize: 14,
+      fontWeight: '600',
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#fff',
       margin: 0,
     },
     menuBadge: {
-      fontSize: 13,
-      color: theme.hint,
+      fontSize: 12,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       marginRight: 8,
     },
     menuArrow: {
       fontSize: 14,
-      color: theme.hint,
-    },
-    logoutButton: {
-      width: '100%',
-      padding: '14px',
-      fontSize: 15,
-      fontWeight: '600',
-      borderRadius: 14,
-      border: `1px solid ${theme.danger || '#ff3b30'}`,
-      background: 'transparent',
-      color: theme.danger || '#ff3b30',
-      cursor: 'pointer',
-      marginBottom: 20,
+      color: 'rgba(255, 255, 255, 0.3)',
     },
     // 语言选择弹窗
     overlay: {
@@ -270,53 +332,57 @@ export function ProfilePage({
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
       display: 'flex',
       alignItems: 'flex-end',
       justifyContent: 'center',
       zIndex: 2000,
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
     },
     modal: {
-      backgroundColor: theme.bg,
+      background: 'linear-gradient(180deg, rgba(25, 25, 45, 0.98), rgba(18, 18, 38, 0.98))',
       borderRadius: '20px 20px 0 0',
       padding: '20px',
       paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 20px))',
       width: '100%',
       maxHeight: '60vh',
-      animation: 'slideUp 0.3s ease-out',
+      border: '1px solid rgba(0, 229, 255, 0.2)',
+      borderBottom: 'none',
     },
     modalHandle: {
-      width: 36,
+      width: 40,
       height: 4,
-      backgroundColor: theme.hint,
+      background: 'linear-gradient(90deg, #00e5ff, #bf5fff)',
       borderRadius: 2,
       margin: '0 auto 16px',
-      opacity: 0.3,
     },
     modalTitle: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       margin: 0,
       marginBottom: 16,
       textAlign: 'center',
+      textShadow: '0 0 10px rgba(0, 229, 255, 0.3)',
     },
     languageOption: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '14px 16px',
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(0, 229, 255, 0.05)',
+      border: '1px solid rgba(0, 229, 255, 0.15)',
       borderRadius: 12,
       marginBottom: 8,
       cursor: 'pointer',
-      border: 'none',
       width: '100%',
       textAlign: 'left',
     },
     languageOptionActive: {
-      backgroundColor: 'rgba(102, 126, 234, 0.15)',
-      border: '1px solid #667eea',
+      background: 'rgba(0, 229, 255, 0.15)',
+      border: '1px solid rgba(0, 229, 255, 0.4)',
     },
     languageInfo: {
       display: 'flex',
@@ -328,12 +394,14 @@ export function ProfilePage({
     },
     languageName: {
       fontSize: 15,
-      fontWeight: '500',
-      color: theme.text,
+      fontWeight: '600',
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#fff',
     },
     checkmark: {
       fontSize: 18,
-      color: '#667eea',
+      color: '#00e5ff',
+      textShadow: '0 0 10px rgba(0, 229, 255, 0.5)',
     },
   };
 
@@ -341,6 +409,7 @@ export function ProfilePage({
     <div style={styles.container}>
       {/* 用户资料卡片 */}
       <div style={styles.profileCard}>
+        <div style={styles.profileGlow} />
         <div style={styles.avatar}>
           {user?.first_name?.[0]?.toUpperCase() || 'G'}
         </div>
@@ -353,10 +422,11 @@ export function ProfilePage({
         <div style={styles.levelSection}>
           <div style={styles.levelHeader}>
             <div style={styles.levelBadge}>
-              <span>🏅</span>
+              <IconMedal size={16} color="#ffc107" />
               <span>Lv.{level}</span>
+              <span style={styles.levelTitle}>{getLevelTitle(level)}</span>
             </div>
-            <span style={styles.levelPoints}>{levelProgress}/100</span>
+            <span style={styles.levelPoints}>{levelInfo.currentExp}/{levelInfo.nextLevelExp}</span>
           </div>
           <div style={styles.progressBar}>
             <div style={{ ...styles.progressFill, width: `${levelProgress}%` }} />
@@ -367,17 +437,17 @@ export function ProfilePage({
       {/* 数据统计 */}
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
-          <div style={styles.statIcon}>✅</div>
+          <div style={styles.statIcon}><IconCheck size={24} color="#39ff14" /></div>
           <p style={styles.statValue}>{completedQuests?.length || 0}</p>
           <p style={styles.statLabel}>{t ? t('profile.completedQuests') : '完成任务'}</p>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statIcon}>🔥</div>
+          <div style={styles.statIcon}><IconFire size={24} color="#ff6b35" /></div>
           <p style={styles.statValue}>{checkInData?.streak || 0}</p>
           <p style={styles.statLabel}>{t ? t('profile.checkInDays') : '连续签到'}</p>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statIcon}>👥</div>
+          <div style={styles.statIcon}><IconUsers size={24} color="#bf5fff" /></div>
           <p style={styles.statValue}>{inviteData?.inviteCount || 0}</p>
           <p style={styles.statLabel}>{t ? t('profile.invitedFriends') : '邀请好友'}</p>
         </div>
@@ -397,7 +467,7 @@ export function ProfilePage({
             <span style={styles.menuIcon}>{item.icon}</span>
             <span style={styles.menuLabel}>{item.label}</span>
             {item.badge && <span style={{...styles.menuBadge, color: item.badgeColor || styles.menuBadge.color}}>{item.badge}</span>}
-            <span style={styles.menuArrow}>›</span>
+            <IconArrowRight size={16} color="rgba(255, 255, 255, 0.3)" />
           </div>
         ))}
       </div>
@@ -405,20 +475,16 @@ export function ProfilePage({
       {/* 通知设置弹窗 */}
       {showNotificationSettings && (
         <NotificationSettings
-          theme={theme}
           token={token}
           onClose={() => setShowNotificationSettings(false)}
           t={t}
         />
       )}
 
-      {/* 主题选择器 */}
+      {/* 主题选择器 - 已移除，统一使用赛博朋克风格 */}
       {showThemeSelector && (
         <ThemeSelector
-          currentTheme={theme.themeMode}
-          onThemeChange={theme.setThemeMode}
           onClose={() => setShowThemeSelector(false)}
-          theme={theme}
           t={t}
         />
       )}
@@ -446,7 +512,7 @@ export function ProfilePage({
                   <span style={styles.languageFlag}>{lang.flag}</span>
                   <span style={styles.languageName}>{lang.name}</span>
                 </div>
-                {lang.code === locale && <span style={styles.checkmark}>✓</span>}
+                {lang.code === locale && <IconCheck size={18} color="#00e5ff" />}
               </button>
             ))}
           </div>

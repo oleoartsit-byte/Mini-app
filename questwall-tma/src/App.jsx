@@ -14,6 +14,7 @@ import {
   BottomNav,
   RewardsPage,
   ProfilePage,
+  TutorialPage,
   HomePageSkeleton,
   QuestsPageSkeleton,
   PageTransition,
@@ -27,6 +28,7 @@ import {
   WithdrawModal,
 } from './components';
 import { TwitterBindModal } from './components/TwitterBindModal';
+import { IconQuest, IconFire, IconCheck } from './components/icons/CyberpunkIcons';
 import { globalStyles, baseStyles } from './styles/globalStyles';
 
 // 邀请奖励
@@ -54,7 +56,7 @@ export function App() {
 
   // 计算页面切换动画方向
   const getTransitionType = () => {
-    const tabOrder = ['home', 'quests', 'rewards', 'profile'];
+    const tabOrder = ['home', 'quests', 'tutorials', 'rewards', 'profile'];
     const currentIndex = tabOrder.indexOf(activeTab);
     const prevIndex = tabOrder.indexOf(previousTab);
     if (currentIndex > prevIndex) return 'slide-right';
@@ -563,16 +565,17 @@ export function App() {
 
   const containerStyle = {
     ...baseStyles.container,
-    backgroundColor: theme.secondaryBg,
+    backgroundColor: 'transparent',
     // 为底部导航 + 安全区域留出空间
     paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
   };
 
   const sectionHeaderStyle = {
     padding: '8px 20px 12px',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: theme.hint,
+    fontFamily: "'Orbitron', sans-serif",
+    color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
     letterSpacing: '1px',
     display: 'flex',
@@ -580,22 +583,44 @@ export function App() {
     gap: 8,
   };
 
+  // 统一的页面标题样式
+  const pageHeaderStyle = {
+    padding: '24px 18px 16px',
+    position: 'relative',
+  };
+
+  const pageTitleStyle = {
+    fontSize: 22,
+    fontWeight: '800',
+    fontFamily: "'Orbitron', sans-serif",
+    color: '#fff',
+    margin: 0,
+    marginBottom: 4,
+    textShadow: '0 0 10px rgba(0, 229, 255, 0.3)',
+  };
+
+  const pageSubtitleStyle = {
+    fontSize: 13,
+    fontFamily: "'Rajdhani', sans-serif",
+    color: 'rgba(255, 255, 255, 0.5)',
+    margin: 0,
+  };
+
   // 渲染首页内容
   const renderHomePage = () => (
     <>
+      <UserCard user={user} authStatus={authStatus} completedCount={completedQuests.length} t={t} />
       <Header
         completedCount={completedQuests.length}
         totalPoints={totalPoints}
         t={t}
       />
-      <UserCard user={user} authStatus={authStatus} theme={theme} t={t} />
 
       {/* 签到卡片 */}
       <CheckInCard
         checkInData={checkInData}
         onCheckIn={handleCheckIn}
         onMakeup={handleMakeup}
-        theme={theme}
         t={t}
       />
 
@@ -611,19 +636,18 @@ export function App() {
         }}
         onCopyLink={handleCopyInviteLink}
         onShare={handleShareInvite}
-        theme={theme}
         t={t}
       />
 
       <div style={sectionHeaderStyle}>
-        <span>🔥</span>
+        <IconFire size={18} color="#ff6b35" />
         <span>{t('home.hotQuests')}</span>
       </div>
 
       {loading ? (
-        <Loading theme={theme} />
+        <Loading />
       ) : availableQuests.length === 0 ? (
-        <EmptyState theme={theme} t={t} />
+        <EmptyState t={t} />
       ) : (
         <StaggeredList delay={50}>
           {availableQuests.slice(0, 3).map(quest => (
@@ -631,7 +655,6 @@ export function App() {
               key={quest.id}
               quest={quest}
               onStart={handleStartQuest}
-              theme={theme}
               isCompleted={completedQuests.includes(quest.id)}
               t={t}
             />
@@ -647,14 +670,17 @@ export function App() {
           <AnimatedButton
             onClick={() => handleTabChange('quests')}
             style={{
-              padding: '12px 32px',
-              fontSize: 14,
-              fontWeight: '600',
-              borderRadius: 12,
-              border: `1px solid ${theme.hint}30`,
-              background: 'transparent',
-              color: theme.text,
+              padding: '12px 28px',
+              fontSize: 12,
+              fontWeight: '700',
+              fontFamily: "'Orbitron', sans-serif",
+              borderRadius: 10,
+              border: '1px solid rgba(0, 229, 255, 0.3)',
+              background: 'rgba(0, 229, 255, 0.1)',
+              color: '#00e5ff',
               cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
             }}
           >
             {t('home.viewAllQuests')}
@@ -666,52 +692,39 @@ export function App() {
 
   // 渲染任务页面
   const renderQuestsPage = () => (
-    <PullToRefresh onRefresh={handleRefresh} theme={theme}>
-      <div style={{
-        padding: '20px 16px 12px',
-        backgroundColor: theme.secondaryBg,
-      }}>
-        <h2 style={{
-          fontSize: 24,
-          fontWeight: '800',
-          color: theme.text,
-          margin: 0,
-          marginBottom: 4,
-        }}>{t('quest.title')}</h2>
-        <p style={{
-          fontSize: 14,
-          color: theme.hint,
-          margin: 0,
-        }}>{t('quest.subtitle')}</p>
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div style={pageHeaderStyle}>
+        <h2 style={pageTitleStyle}>{t('quest.title')}</h2>
+        <p style={pageSubtitleStyle}>{t('quest.subtitle')}</p>
       </div>
 
       {/* 筛选和搜索 */}
       <QuestFilter
         onFilterChange={setQuestFilter}
         onSearchChange={setQuestSearch}
-        theme={theme}
         t={t}
       />
 
       <div style={sectionHeaderStyle}>
-        <span>🎯</span>
+        <IconQuest size={18} color="#00e5ff" />
         <span>{t('quest.available')}</span>
         <span style={{
           marginLeft: 'auto',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: '#fff',
-          padding: '4px 10px',
-          borderRadius: 10,
-          fontSize: 12,
+          background: 'linear-gradient(135deg, #00e5ff, #bf5fff)',
+          color: '#000',
+          padding: '3px 10px',
+          borderRadius: 8,
+          fontSize: 11,
+          fontWeight: '700',
         }}>
           {availableQuests.length}
         </span>
       </div>
 
       {loading ? (
-        <Loading theme={theme} />
+        <Loading />
       ) : availableQuests.length === 0 ? (
-        <EmptyState theme={theme} t={t} />
+        <EmptyState t={t} />
       ) : (
         <StaggeredList delay={60}>
           {availableQuests.map(quest => (
@@ -719,7 +732,6 @@ export function App() {
               key={quest.id}
               quest={quest}
               onStart={handleStartQuest}
-              theme={theme}
               isCompleted={completedQuests.includes(quest.id)}
               t={t}
             />
@@ -730,15 +742,16 @@ export function App() {
       {completedQuests.length > 0 && (
         <>
           <div style={sectionHeaderStyle}>
-            <span>✅</span>
+            <IconCheck size={18} color="#39ff14" />
             <span>{t('quest.completed')}</span>
             <span style={{
               marginLeft: 'auto',
-              background: '#34c759',
-              color: '#fff',
-              padding: '4px 10px',
-              borderRadius: 10,
-              fontSize: 12,
+              background: 'linear-gradient(135deg, #39ff14, #00e5ff)',
+              color: '#000',
+              padding: '3px 10px',
+              borderRadius: 8,
+              fontSize: 11,
+              fontWeight: '700',
             }}>
               {completedQuests.length}
             </span>
@@ -770,55 +783,39 @@ export function App() {
       case 'rewards':
         return (
           <>
-            <div style={{
-              padding: '20px 16px 16px',
-              backgroundColor: theme.secondaryBg,
-            }}>
-              <h2 style={{
-                fontSize: 24,
-                fontWeight: '800',
-                color: theme.text,
-                margin: 0,
-                marginBottom: 4,
-              }}>{t('rewards.title')}</h2>
-              <p style={{
-                fontSize: 14,
-                color: theme.hint,
-                margin: 0,
-              }}>{t('rewards.subtitle')}</p>
+            <div style={pageHeaderStyle}>
+              <h2 style={pageTitleStyle}>{t('rewards.title')}</h2>
+              <p style={pageSubtitleStyle}>{t('rewards.subtitle')}</p>
             </div>
-            <RewardsPage wallet={wallet} theme={theme} t={t} onWithdraw={() => setShowWithdrawModal(true)} api={api} />
+            <RewardsPage wallet={wallet} t={t} onWithdraw={() => setShowWithdrawModal(true)} api={api} />
 
             {/* 排行榜 */}
             <div style={{ marginTop: 16 }}>
-              <Leaderboard currentUser={user} wallet={wallet} theme={theme} api={api} t={t} />
+              <Leaderboard currentUser={user} wallet={wallet} api={api} t={t} />
             </div>
 
             {/* 交易历史 */}
             <div style={{ marginTop: 16, paddingBottom: 20 }}>
-              <TransactionHistory theme={theme} api={api} />
+              <TransactionHistory api={api} />
             </div>
+          </>
+        );
+      case 'tutorials':
+        return (
+          <>
+            <div style={pageHeaderStyle}>
+              <h2 style={pageTitleStyle}>{t('tutorials.title')}</h2>
+              <p style={pageSubtitleStyle}>{t('tutorials.subtitle')}</p>
+            </div>
+            <TutorialPage api={api} t={t} />
           </>
         );
       case 'profile':
         return (
           <>
-            <div style={{
-              padding: '20px 16px 16px',
-              backgroundColor: theme.secondaryBg,
-            }}>
-              <h2 style={{
-                fontSize: 24,
-                fontWeight: '800',
-                color: theme.text,
-                margin: 0,
-                marginBottom: 4,
-              }}>{t('profile.title')}</h2>
-              <p style={{
-                fontSize: 14,
-                color: theme.hint,
-                margin: 0,
-              }}>{t('profile.subtitle')}</p>
+            <div style={pageHeaderStyle}>
+              <h2 style={pageTitleStyle}>{t('profile.title')}</h2>
+              <p style={pageSubtitleStyle}>{t('profile.subtitle')}</p>
             </div>
             <ProfilePage
               user={user}
@@ -827,7 +824,6 @@ export function App() {
               completedQuests={completedQuests}
               checkInData={checkInData}
               inviteData={inviteData}
-              theme={theme}
               token={authToken}
               t={t}
               locale={locale}
@@ -848,11 +844,48 @@ export function App() {
     <div style={containerStyle}>
       <style>{globalStyles}</style>
 
+      {/* 霓虹背景效果 */}
+      <div className="bg-grid" />
+
+      {/* 动态光球 */}
+      <div className="bg-orbs">
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+        <div className="orb orb-3" />
+        <div className="orb orb-4" />
+        <div className="orb orb-5" />
+        <div className="orb orb-6" />
+      </div>
+
+      {/* 12颗闪烁星星 */}
+      <div className="stars">
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+        <div className="star" />
+      </div>
+
+      {/* 流星效果 */}
+      <div className="meteors">
+        <div className="meteor" />
+        <div className="meteor" />
+        <div className="meteor" />
+        <div className="meteor" />
+      </div>
+
       <PageTransition pageKey={activeTab} type={getTransitionType()}>
         {loading && activeTab === 'home' ? (
-          <HomePageSkeleton theme={theme} />
+          <HomePageSkeleton />
         ) : loading && activeTab === 'quests' ? (
-          <QuestsPageSkeleton theme={theme} />
+          <QuestsPageSkeleton />
         ) : (
           renderContent()
         )}
@@ -862,7 +895,6 @@ export function App() {
         quest={activeQuest}
         onClose={() => setActiveQuest(null)}
         onSubmit={handleSubmitQuest}
-        theme={theme}
         api={api}
         twitterBound={twitterStatus.bound}
         twitterUsername={twitterStatus.twitterUsername}
@@ -881,7 +913,6 @@ export function App() {
       <BottomNav
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        theme={theme}
         t={t}
       />
 
@@ -891,7 +922,6 @@ export function App() {
         onClose={() => setShowWithdrawModal(false)}
         wallet={wallet}
         onWithdraw={handleWithdraw}
-        theme={theme}
         t={t}
       />
 
@@ -899,7 +929,6 @@ export function App() {
       <TwitterBindModal
         isOpen={showTwitterModal}
         onClose={() => setShowTwitterModal(false)}
-        theme={theme}
         api={api}
         t={t}
         onBindSuccess={() => {

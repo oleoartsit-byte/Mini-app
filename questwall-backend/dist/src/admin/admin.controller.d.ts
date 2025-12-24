@@ -1,6 +1,6 @@
 import { AdminService } from './admin.service';
 import { JwtService } from '@nestjs/jwt';
-import { QuestStatus, BlacklistType } from '@prisma/client';
+import { QuestStatus, BlacklistType, TutorialStatus } from '@prisma/client';
 export declare class AdminController {
     private readonly adminService;
     private readonly jwtService;
@@ -55,6 +55,7 @@ export declare class AdminController {
             reward: {
                 type: import(".prisma/client").$Enums.RewardType;
                 amount: string;
+                points: number;
                 asset: string;
             };
             limits: import("@prisma/client/runtime/library").JsonValue;
@@ -81,6 +82,7 @@ export declare class AdminController {
         reward: {
             type: import(".prisma/client").$Enums.RewardType;
             amount: string;
+            points: number;
             asset: string;
         };
         limits: import("@prisma/client/runtime/library").JsonValue;
@@ -358,6 +360,142 @@ export declare class AdminController {
     }>;
     removeFromBlacklist(authHeader: string, id: string): Promise<{
         success: boolean;
+        message: string;
+    }>;
+    getPendingReviews(authHeader: string, page?: string, pageSize?: string, status?: string): Promise<{
+        items: {
+            id: string;
+            status: import(".prisma/client").$Enums.ActionStatus;
+            proofImage: string;
+            proof: import("@prisma/client/runtime/library").JsonValue;
+            submittedAt: Date;
+            user: {
+                id: string;
+                username: string;
+                tgId: string;
+                twitterUsername: string;
+                riskScore: number;
+            };
+            quest: {
+                id: string;
+                type: import(".prisma/client").$Enums.QuestType;
+                title: string;
+                targetUrl: string;
+                rewardType: import(".prisma/client").$Enums.RewardType;
+                rewardAmount: string;
+            };
+        }[];
+        total: number;
+        pendingCount: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    }>;
+    getReviewStats(authHeader: string): Promise<{
+        pending: number;
+        approvedToday: number;
+        rejectedToday: number;
+    }>;
+    getReviewDetail(authHeader: string, id: string): Promise<{
+        id: string;
+        status: import(".prisma/client").$Enums.ActionStatus;
+        proofImage: string;
+        proof: import("@prisma/client/runtime/library").JsonValue;
+        twitterId: string;
+        claimedAt: Date;
+        submittedAt: Date;
+        verifiedAt: Date;
+        user: {
+            id: string;
+            username: string;
+            tgId: string;
+            twitterId: string;
+            twitterUsername: string;
+            riskScore: number;
+            createdAt: Date;
+            stats: Record<string, number>;
+        };
+        quest: {
+            id: string;
+            type: import(".prisma/client").$Enums.QuestType;
+            title: string;
+            description: string;
+            targetUrl: string;
+            rewardType: import(".prisma/client").$Enums.RewardType;
+            rewardAmount: string;
+            rewardAsset: string;
+        };
+    }>;
+    approveReview(authHeader: string, id: string): Promise<{
+        success: boolean;
+        message: string;
+        reward: {
+            type: import(".prisma/client").$Enums.RewardType;
+            amount: string;
+        };
+    }>;
+    rejectReview(authHeader: string, id: string, body: {
+        reason?: string;
+    }): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    getTutorials(authHeader: string, page?: string, pageSize?: string, status?: string): Promise<{
+        items: {
+            id: string;
+            type: import(".prisma/client").$Enums.TutorialType;
+            category: string;
+            title: string;
+            titleEn: string;
+            description: string;
+            descriptionEn: string;
+            coverImage: string;
+            videoUrl: string;
+            icon: string;
+            sortOrder: number;
+            viewCount: number;
+            status: import(".prisma/client").$Enums.TutorialStatus;
+            createdAt: Date;
+            updatedAt: Date;
+        }[];
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    }>;
+    getTutorialDetail(authHeader: string, id: string): Promise<{
+        id: string;
+        type: import(".prisma/client").$Enums.TutorialType;
+        category: string;
+        title: string;
+        titleEn: string;
+        description: string;
+        descriptionEn: string;
+        content: string;
+        contentEn: string;
+        coverImage: string;
+        videoUrl: string;
+        images: string[];
+        icon: string;
+        sortOrder: number;
+        viewCount: number;
+        status: import(".prisma/client").$Enums.TutorialStatus;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    createTutorial(authHeader: string, body: any): Promise<{
+        id: string;
+        message: string;
+    }>;
+    updateTutorial(authHeader: string, id: string, body: any): Promise<{
+        message: string;
+    }>;
+    updateTutorialStatus(authHeader: string, id: string, body: {
+        status: TutorialStatus;
+    }): Promise<{
+        message: string;
+    }>;
+    deleteTutorial(authHeader: string, id: string): Promise<{
         message: string;
     }>;
 }

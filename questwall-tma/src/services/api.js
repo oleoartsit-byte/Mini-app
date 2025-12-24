@@ -82,17 +82,40 @@ export function createApiService(token) {
     },
 
     // 提交任务证明
-    submitQuest: async (questId, proof) => {
+    submitQuest: async (questId, proof, proofImage = null) => {
       try {
+        const body = { proof };
+        if (proofImage) {
+          body.proofImage = proofImage;
+        }
         const response = await fetch(`${API_BASE}/quests/${questId}/submit`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ proof })
+          body: JSON.stringify(body)
         });
         return await response.json();
       } catch (error) {
         console.error('提交任务失败:', error);
         return { success: false, message: '网络错误' };
+      }
+    },
+
+    // 上传图片
+    uploadImage: async (file) => {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await fetch(`${API_BASE}/upload/image`, {
+          method: 'POST',
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: formData
+        });
+        return await response.json();
+      } catch (error) {
+        console.error('上传图片失败:', error);
+        return { success: false, message: '上传失败' };
       }
     },
 
@@ -433,6 +456,45 @@ export function createApiService(token) {
       } catch (error) {
         console.error('获取奖励历史失败:', error);
         return { items: [], total: 0 };
+      }
+    },
+
+    // ==================== 教程相关 API ====================
+
+    // 获取教程列表
+    getTutorials: async (lang = 'zh', category = null, page = 1, pageSize = 20) => {
+      try {
+        let url = `${API_BASE}/tutorials?lang=${lang}&page=${page}&pageSize=${pageSize}`;
+        if (category && category !== 'all') {
+          url += `&category=${category}`;
+        }
+        const response = await fetch(url);
+        return await response.json();
+      } catch (error) {
+        console.error('获取教程列表失败:', error);
+        return { items: [], total: 0 };
+      }
+    },
+
+    // 获取教程详情
+    getTutorialDetail: async (id, lang = 'zh') => {
+      try {
+        const response = await fetch(`${API_BASE}/tutorials/${id}?lang=${lang}`);
+        return await response.json();
+      } catch (error) {
+        console.error('获取教程详情失败:', error);
+        return null;
+      }
+    },
+
+    // 获取教程分类
+    getTutorialCategories: async (lang = 'zh') => {
+      try {
+        const response = await fetch(`${API_BASE}/tutorials/categories?lang=${lang}`);
+        return await response.json();
+      } catch (error) {
+        console.error('获取教程分类失败:', error);
+        return [];
       }
     }
   };

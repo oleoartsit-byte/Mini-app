@@ -1,23 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { IconDollar, IconClock, IconHistory, IconCheck, IconWithdraw, IconTarget, IconInfo, IconStar } from './icons/CyberpunkIcons';
 
-// USDT 配置
+// USDT 配置 - 青色赛博朋克主题
 const USDT_CONFIG = {
-  icon: '💵',
+  icon: 'dollar',
   name: 'USDT',
   minAmount: 5,
-  color: '#26A17B',
-  gradient: 'linear-gradient(135deg, #26A17B 0%, #3CB371 100%)',
+  color: '#00e5ff',
+  gradient: 'linear-gradient(135deg, #00e5ff 0%, #bf5fff 100%)',
 };
 
 // 提现状态配置
 const WITHDRAW_STATUS = {
-  PENDING: { label: '待审核', color: '#FFA500', icon: '⏳' },
-  PROCESSING: { label: '处理中', color: '#2196F3', icon: '🔄' },
-  COMPLETED: { label: '已完成', color: '#4CAF50', icon: '✅' },
-  REJECTED: { label: '已拒绝', color: '#f44336', icon: '❌' },
+  PENDING: { label: '待审核', color: '#FFA500', iconType: 'clock' },
+  PROCESSING: { label: '处理中', color: '#2196F3', iconType: 'history' },
+  COMPLETED: { label: '已完成', color: '#4CAF50', iconType: 'check' },
+  REJECTED: { label: '已拒绝', color: '#f44336', iconType: 'withdraw' },
 };
 
-export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, api }) {
+// 获取状态图标
+const getStatusIcon = (iconType, color) => {
+  const size = 12;
+  switch (iconType) {
+    case 'clock': return <IconClock size={size} color={color} />;
+    case 'history': return <IconHistory size={size} color={color} />;
+    case 'check': return <IconCheck size={size} color={color} />;
+    case 'withdraw': return <IconWithdraw size={size} color={color} />;
+    default: return null;
+  }
+};
+
+export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) {
   const [step, setStep] = useState('form'); // form | success | history
   const [amount, setAmount] = useState('');
   const [address, setAddress] = useState('');
@@ -131,7 +144,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.6)',
+      backgroundColor: 'rgba(0,0,0,0.7)',
       backdropFilter: 'blur(4px)',
       display: 'flex',
       alignItems: 'flex-end',
@@ -142,18 +155,20 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
     modal: {
       width: '100%',
       maxWidth: 500,
-      backgroundColor: theme.bg,
+      background: 'linear-gradient(145deg, rgba(25, 25, 45, 0.98), rgba(18, 18, 38, 0.98))',
       borderRadius: '24px 24px 0 0',
       padding: '0 20px 20px',
       paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
       animation: 'slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
       maxHeight: '90vh',
       overflowY: 'auto',
+      border: '1px solid rgba(0, 229, 255, 0.2)',
+      borderBottom: 'none',
     },
     dragIndicator: {
       width: 36,
       height: 4,
-      backgroundColor: theme.hint + '40',
+      background: 'linear-gradient(135deg, #00e5ff, #bf5fff)',
       borderRadius: 2,
       margin: '12px auto 16px',
     },
@@ -181,16 +196,18 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
     title: {
       fontSize: 20,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       margin: 0,
+      textShadow: '0 0 10px rgba(0, 229, 255, 0.3)',
     },
     closeButton: {
       width: 36,
       height: 36,
       borderRadius: '50%',
-      backgroundColor: theme.secondaryBg,
-      border: 'none',
-      color: theme.hint,
+      background: 'rgba(255, 255, 255, 0.05)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      color: 'rgba(255, 255, 255, 0.5)',
       fontSize: 20,
       cursor: 'pointer',
       display: 'flex',
@@ -203,17 +220,19 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       display: 'flex',
       gap: 8,
       marginBottom: 20,
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(0, 0, 0, 0.3)',
       borderRadius: 12,
       padding: 4,
+      border: '1px solid rgba(255, 255, 255, 0.05)',
     },
     tab: {
       flex: 1,
       padding: '10px 16px',
       border: 'none',
       borderRadius: 10,
-      fontSize: 14,
-      fontWeight: '600',
+      fontSize: 13,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       cursor: 'pointer',
       transition: 'all 0.2s ease',
     },
@@ -223,35 +242,43 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       borderRadius: 16,
       padding: '20px',
       marginBottom: 20,
-      color: '#fff',
+      color: '#000',
+      boxShadow: '0 4px 20px rgba(0, 229, 255, 0.3)',
     },
     balanceLabel: {
       fontSize: 12,
-      opacity: 0.9,
+      fontFamily: "'Rajdhani', sans-serif",
+      fontWeight: '600',
+      opacity: 0.8,
       marginBottom: 4,
     },
     balanceValue: {
       fontSize: 32,
       fontWeight: '700',
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif",
       display: 'flex',
       alignItems: 'baseline',
       gap: 8,
     },
     balanceUnit: {
       fontSize: 16,
-      opacity: 0.9,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      opacity: 0.8,
     },
     // 金额输入区域
     amountSection: {
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(0, 0, 0, 0.3)',
       borderRadius: 16,
       padding: '16px',
       marginBottom: 16,
+      border: '1px solid rgba(255, 255, 255, 0.05)',
     },
     amountLabel: {
       fontSize: 12,
       fontWeight: '600',
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       marginBottom: 8,
       display: 'flex',
       justifyContent: 'space-between',
@@ -264,30 +291,34 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
     },
     amountInput: {
       flex: 1,
-      fontSize: 28,
-      fontWeight: '700',
+      fontSize: 32,
+      fontWeight: '500',
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif",
       border: 'none',
       outline: 'none',
       backgroundColor: 'transparent',
-      color: theme.text,
+      color: '#fff',
       padding: 0,
+      WebkitTextFillColor: '#fff',
     },
     assetBadge: {
       padding: '6px 12px',
       borderRadius: 8,
       background: assetGradient,
-      color: '#fff',
+      color: '#000',
       fontSize: 13,
       fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
     },
     maxButton: {
       padding: '4px 10px',
       borderRadius: 6,
-      border: `1px solid ${theme.hint}50`,
-      backgroundColor: theme.secondaryBg,
-      color: theme.text,
-      fontSize: 12,
-      fontWeight: '600',
+      border: '1px solid rgba(0, 229, 255, 0.4)',
+      background: 'rgba(0, 229, 255, 0.1)',
+      color: '#00e5ff',
+      fontSize: 11,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       cursor: 'pointer',
       transition: 'all 0.2s ease',
       marginLeft: 8,
@@ -299,7 +330,8 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
     addressLabel: {
       fontSize: 12,
       fontWeight: '600',
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       marginBottom: 8,
       display: 'flex',
       alignItems: 'center',
@@ -309,18 +341,19 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       width: '100%',
       padding: '14px 16px',
       fontSize: 14,
-      border: `1px solid ${theme.hint}30`,
+      fontFamily: "'Roboto Mono', monospace",
+      border: '1px solid rgba(255, 255, 255, 0.1)',
       borderRadius: 12,
       outline: 'none',
-      backgroundColor: theme.secondaryBg,
-      color: theme.text,
-      fontFamily: 'monospace',
+      background: 'rgba(0, 0, 0, 0.3)',
+      color: '#fff',
       transition: 'border-color 0.2s ease',
       boxSizing: 'border-box',
     },
     addressHint: {
       fontSize: 11,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       marginTop: 6,
     },
     // 提现信息卡片
@@ -338,28 +371,31 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       padding: '8px 0',
     },
     infoRowBorder: {
-      borderBottom: `1px solid ${theme.hint}15`,
+      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
     },
     infoLabel: {
       fontSize: 13,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       display: 'flex',
       alignItems: 'center',
       gap: 6,
     },
     infoValue: {
       fontSize: 14,
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       fontWeight: '600',
     },
     infoHighlight: {
-      color: assetColor,
+      color: '#39ff14',
       fontWeight: '700',
+      textShadow: '0 0 8px rgba(57, 255, 20, 0.3)',
     },
     // 错误提示
     errorBox: {
-      backgroundColor: '#ff444415',
-      border: '1px solid #ff444430',
+      background: 'rgba(255, 77, 166, 0.1)',
+      border: '1px solid rgba(255, 77, 166, 0.3)',
       borderRadius: 12,
       padding: '12px 16px',
       marginBottom: 16,
@@ -368,8 +404,9 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       gap: 10,
     },
     errorText: {
-      color: '#ff4444',
+      color: '#ff4da6',
       fontSize: 13,
+      fontFamily: "'Rajdhani', sans-serif",
       fontWeight: '500',
       margin: 0,
     },
@@ -377,12 +414,13 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
     submitButton: {
       width: '100%',
       padding: '16px',
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       borderRadius: 14,
       border: 'none',
       background: assetGradient,
-      color: '#fff',
+      color: '#000',
       cursor: loading ? 'not-allowed' : 'pointer',
       opacity: loading ? 0.7 : 1,
       boxShadow: `0 4px 16px ${assetColor}40`,
@@ -391,12 +429,14 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     loadingSpinner: {
       width: 18,
       height: 18,
-      border: '2px solid rgba(255,255,255,0.3)',
-      borderTopColor: '#fff',
+      border: '2px solid rgba(0,0,0,0.3)',
+      borderTopColor: '#000',
       borderRadius: '50%',
       animation: 'spin 0.8s linear infinite',
     },
@@ -412,35 +452,41 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
     successTitle: {
       fontSize: 20,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       marginBottom: 8,
+      textShadow: '0 0 10px rgba(57, 255, 20, 0.3)',
     },
     successMessage: {
       fontSize: 14,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       marginBottom: 24,
       lineHeight: 1.6,
     },
     successDetail: {
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(0, 0, 0, 0.3)',
       borderRadius: 12,
       padding: '16px',
       marginBottom: 20,
       textAlign: 'left',
+      border: '1px solid rgba(255, 255, 255, 0.05)',
     },
     successDetailRow: {
       display: 'flex',
       justifyContent: 'space-between',
       padding: '8px 0',
-      borderBottom: `1px solid ${theme.hint}15`,
+      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
     },
     successDetailLabel: {
       fontSize: 13,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
     },
     successDetailValue: {
       fontSize: 13,
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
       fontWeight: '600',
     },
     // 历史记录
@@ -449,10 +495,11 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       overflowY: 'auto',
     },
     historyItem: {
-      backgroundColor: theme.secondaryBg,
+      background: 'rgba(0, 0, 0, 0.3)',
       borderRadius: 12,
       padding: '14px 16px',
       marginBottom: 10,
+      border: '1px solid rgba(255, 255, 255, 0.05)',
     },
     historyHeader: {
       display: 'flex',
@@ -463,30 +510,34 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
     historyAmount: {
       fontSize: 16,
       fontWeight: '700',
-      color: theme.text,
+      fontFamily: "'Orbitron', sans-serif",
+      color: '#fff',
     },
     historyStatus: {
-      fontSize: 12,
-      fontWeight: '600',
+      fontSize: 11,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
       padding: '4px 8px',
       borderRadius: 6,
     },
     historyAddress: {
       fontSize: 12,
-      color: theme.hint,
-      fontFamily: 'monospace',
+      fontFamily: "'Roboto Mono', monospace",
+      color: 'rgba(255, 255, 255, 0.6)',
       marginBottom: 4,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
     },
     historyTime: {
       fontSize: 11,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
     },
     emptyHistory: {
       textAlign: 'center',
       padding: '40px 20px',
-      color: theme.hint,
+      color: 'rgba(255, 255, 255, 0.6)',
+      fontFamily: "'Rajdhani', sans-serif",
     },
     emptyIcon: {
       fontSize: 48,
@@ -499,8 +550,29 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
     },
     note: {
       fontSize: 12,
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
       lineHeight: 1.5,
+    },
+    secondaryButton: {
+      width: '100%',
+      padding: '16px',
+      fontSize: 14,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      borderRadius: 14,
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      background: 'rgba(255, 255, 255, 0.05)',
+      color: '#fff',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginTop: 10,
     },
   };
 
@@ -548,7 +620,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       {/* 地址输入 */}
       <div style={styles.addressSection}>
         <label style={styles.addressLabel}>
-          <span>📍</span>
+          <IconTarget size={14} color="#00e5ff" />
           收款地址
         </label>
         <input
@@ -557,8 +629,8 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
           placeholder="输入 TRC20 或 ERC20 钱包地址"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          onFocus={(e) => e.target.style.borderColor = assetColor}
-          onBlur={(e) => e.target.style.borderColor = theme.hint + '30'}
+          onFocus={(e) => e.target.style.borderColor = '#00e5ff'}
+          onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
         />
         <div style={styles.addressHint}>
           支持 TRC20 (T开头) 和 ERC20 (0x开头) 地址
@@ -569,21 +641,21 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       <div style={styles.infoCard}>
         <div style={{ ...styles.infoRow, ...styles.infoRowBorder }}>
           <span style={styles.infoLabel}>
-            <span>📊</span>
+            <IconClock size={14} color="#00e5ff" />
             最低提现
           </span>
           <span style={styles.infoValue}>{minAmount} USDT</span>
         </div>
         <div style={{ ...styles.infoRow, ...styles.infoRowBorder }}>
           <span style={styles.infoLabel}>
-            <span>💰</span>
+            <IconDollar size={14} color="#00e5ff" />
             手续费
           </span>
-          <span style={{ ...styles.infoValue, color: '#4CAF50' }}>免费</span>
+          <span style={{ ...styles.infoValue, color: '#39ff14' }}>免费</span>
         </div>
         <div style={styles.infoRow}>
           <span style={styles.infoLabel}>
-            <span>✨</span>
+            <IconStar size={14} color="#00e5ff" />
             预计到账
           </span>
           <span style={{ ...styles.infoValue, ...styles.infoHighlight }}>
@@ -595,7 +667,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       {/* 错误提示 */}
       {error && (
         <div style={styles.errorBox}>
-          <span>⚠️</span>
+          <IconInfo size={16} color="#ff4da6" />
           <p style={styles.errorText}>{error}</p>
         </div>
       )}
@@ -613,7 +685,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
           </>
         ) : (
           <>
-            <span>📤</span>
+            <IconWithdraw size={16} color="#000" />
             提交提现申请
           </>
         )}
@@ -622,7 +694,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       {/* 底部提示 */}
       <div style={styles.noteWrapper}>
         <p style={styles.note}>
-          💡 提现申请提交后，将由客服人员审核并手动转账，预计 1-3 个工作日内处理
+          <IconInfo size={12} color="rgba(255, 255, 255, 0.4)" style={{ marginRight: 4, verticalAlign: 'middle' }} /> 提现申请提交后，将由客服人员审核并手动转账，预计 1-3 个工作日内处理
         </p>
       </div>
     </>
@@ -631,7 +703,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
   // 渲染成功页面
   const renderSuccess = () => (
     <div style={styles.successWrapper}>
-      <div style={styles.successIcon}>✅</div>
+      <div style={styles.successIcon}><IconCheck size={64} color="#39ff14" /></div>
       <div style={styles.successTitle}>提现申请已提交</div>
       <div style={styles.successMessage}>
         您的提现申请已成功提交，正在等待审核。<br/>
@@ -646,7 +718,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
           </div>
           <div style={styles.successDetailRow}>
             <span style={styles.successDetailLabel}>手续费</span>
-            <span style={{ ...styles.successDetailValue, color: '#4CAF50' }}>免费</span>
+            <span style={{ ...styles.successDetailValue, color: '#39ff14' }}>免费</span>
           </div>
           <div style={{ ...styles.successDetailRow, borderBottom: 'none' }}>
             <span style={styles.successDetailLabel}>预计到账</span>
@@ -664,18 +736,12 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
           loadHistory();
         }}
       >
-        <span>📋</span>
+        <IconHistory size={16} color="#000" />
         查看提现记录
       </button>
 
       <button
-        style={{
-          ...styles.submitButton,
-          background: theme.secondaryBg,
-          color: theme.text,
-          boxShadow: 'none',
-          marginTop: 10,
-        }}
+        style={styles.secondaryButton}
         onClick={handleClose}
       >
         关闭
@@ -693,7 +759,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
         </div>
       ) : withdrawHistory.length === 0 ? (
         <div style={styles.emptyHistory}>
-          <div style={styles.emptyIcon}>📭</div>
+          <div style={styles.emptyIcon}><IconHistory size={48} color="rgba(255, 255, 255, 0.3)" /></div>
           <div>暂无提现记录</div>
         </div>
       ) : (
@@ -710,8 +776,11 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
                     ...styles.historyStatus,
                     backgroundColor: status.color + '20',
                     color: status.color,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
                   }}>
-                    {status.icon} {status.label}
+                    {getStatusIcon(status.iconType, status.color)} {status.label}
                   </span>
                 </div>
                 <div style={styles.historyAddress}>
@@ -732,13 +801,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
       )}
 
       <button
-        style={{
-          ...styles.submitButton,
-          background: theme.secondaryBg,
-          color: theme.text,
-          boxShadow: 'none',
-          marginTop: 16,
-        }}
+        style={styles.secondaryButton}
         onClick={() => setStep('form')}
       >
         返回提现
@@ -755,7 +818,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
         {/* 标题栏 */}
         <div style={styles.header}>
           <div style={styles.titleWrapper}>
-            <div style={styles.titleIcon}>💵</div>
+            <div style={styles.titleIcon}><IconDollar size={18} color="#fff" /></div>
             <h3 style={styles.title}>
               {step === 'history' ? '提现记录' : step === 'success' ? '提交成功' : 'USDT 提现'}
             </h3>
@@ -769,8 +832,8 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
             <button
               style={{
                 ...styles.tab,
-                backgroundColor: 'form' === step ? assetColor : 'transparent',
-                color: 'form' === step ? '#fff' : theme.hint,
+                background: 'form' === step ? assetGradient : 'transparent',
+                color: 'form' === step ? '#000' : 'rgba(255, 255, 255, 0.5)',
               }}
               onClick={() => setStep('form')}
             >
@@ -779,8 +842,8 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
             <button
               style={{
                 ...styles.tab,
-                backgroundColor: 'history' === step ? assetColor : 'transparent',
-                color: 'history' === step ? '#fff' : theme.hint,
+                background: 'history' === step ? assetGradient : 'transparent',
+                color: 'history' === step ? '#000' : 'rgba(255, 255, 255, 0.5)',
               }}
               onClick={() => {
                 setStep('history');
@@ -817,6 +880,11 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, theme, t, 
         }
         input[type="number"] {
           -moz-appearance: textfield;
+        }
+        input::placeholder {
+          font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.3);
         }
       `}</style>
     </div>

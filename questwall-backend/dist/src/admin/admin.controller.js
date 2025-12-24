@@ -167,6 +167,56 @@ let AdminController = class AdminController {
         this.validateAdmin(authHeader);
         return this.adminService.removeFromBlacklist(BigInt(id));
     }
+    async getPendingReviews(authHeader, page, pageSize, status) {
+        this.validateAdmin(authHeader);
+        const pageNum = parseInt(page) || 1;
+        const pageSizeNum = parseInt(pageSize) || 10;
+        const actionStatus = status ? status : undefined;
+        return this.adminService.getPendingReviews(pageNum, pageSizeNum, actionStatus);
+    }
+    async getReviewStats(authHeader) {
+        this.validateAdmin(authHeader);
+        return this.adminService.getReviewStats();
+    }
+    async getReviewDetail(authHeader, id) {
+        this.validateAdmin(authHeader);
+        return this.adminService.getReviewDetail(BigInt(id));
+    }
+    async approveReview(authHeader, id) {
+        this.validateAdmin(authHeader);
+        return this.adminService.approveReview(BigInt(id));
+    }
+    async rejectReview(authHeader, id, body) {
+        this.validateAdmin(authHeader);
+        return this.adminService.rejectReview(BigInt(id), body.reason);
+    }
+    async getTutorials(authHeader, page, pageSize, status) {
+        this.validateAdmin(authHeader);
+        const pageNum = parseInt(page) || 1;
+        const pageSizeNum = parseInt(pageSize) || 10;
+        const tutorialStatus = status ? status : undefined;
+        return this.adminService.getTutorials(pageNum, pageSizeNum, tutorialStatus);
+    }
+    async getTutorialDetail(authHeader, id) {
+        this.validateAdmin(authHeader);
+        return this.adminService.getTutorialDetail(BigInt(id));
+    }
+    async createTutorial(authHeader, body) {
+        this.validateAdmin(authHeader);
+        return this.adminService.createTutorial(body);
+    }
+    async updateTutorial(authHeader, id, body) {
+        this.validateAdmin(authHeader);
+        return this.adminService.updateTutorial(BigInt(id), body);
+    }
+    async updateTutorialStatus(authHeader, id, body) {
+        this.validateAdmin(authHeader);
+        return this.adminService.updateTutorialStatus(BigInt(id), body.status);
+    }
+    async deleteTutorial(authHeader, id) {
+        this.validateAdmin(authHeader);
+        return this.adminService.deleteTutorial(BigInt(id));
+    }
 };
 exports.AdminController = AdminController;
 __decorate([
@@ -452,6 +502,128 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "removeFromBlacklist", null);
+__decorate([
+    (0, common_1.Get)('reviews'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '获取待审核截图列表' }),
+    (0, swagger_1.ApiQuery)({ name: 'page', required: false, type: Number }),
+    (0, swagger_1.ApiQuery)({ name: 'pageSize', required: false, type: Number }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false, type: String, description: 'SUBMITTED | VERIFIED | REJECTED' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('pageSize')),
+    __param(3, (0, common_1.Query)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getPendingReviews", null);
+__decorate([
+    (0, common_1.Get)('reviews/stats'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '获取审核统计' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getReviewStats", null);
+__decorate([
+    (0, common_1.Get)('reviews/:id'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '获取审核详情' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getReviewDetail", null);
+__decorate([
+    (0, common_1.Post)('reviews/:id/approve'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '审核通过（发放奖励）' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "approveReview", null);
+__decorate([
+    (0, common_1.Post)('reviews/:id/reject'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '审核拒绝' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "rejectReview", null);
+__decorate([
+    (0, common_1.Get)('tutorials'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '获取教程列表（管理员）' }),
+    (0, swagger_1.ApiQuery)({ name: 'page', required: false, type: Number }),
+    (0, swagger_1.ApiQuery)({ name: 'pageSize', required: false, type: Number }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false, type: String }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('pageSize')),
+    __param(3, (0, common_1.Query)('status')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getTutorials", null);
+__decorate([
+    (0, common_1.Get)('tutorials/:id'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '获取教程详情（管理员）' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getTutorialDetail", null);
+__decorate([
+    (0, common_1.Post)('tutorials'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '创建教程（管理员）' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "createTutorial", null);
+__decorate([
+    (0, common_1.Put)('tutorials/:id'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '更新教程（管理员）' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "updateTutorial", null);
+__decorate([
+    (0, common_1.Patch)('tutorials/:id/status'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '更新教程状态（管理员）' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "updateTutorialStatus", null);
+__decorate([
+    (0, common_1.Delete)('tutorials/:id'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: '删除教程（管理员）' }),
+    __param(0, (0, common_1.Headers)('authorization')),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "deleteTutorial", null);
 exports.AdminController = AdminController = __decorate([
     (0, swagger_1.ApiTags)('admin'),
     (0, common_1.Controller)('admin'),

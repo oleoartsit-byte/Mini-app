@@ -10,6 +10,7 @@ export { InviteCard } from './InviteCard';
 export { BottomNav } from './BottomNav';
 export { RewardsPage } from './RewardsPage';
 export { ProfilePage } from './ProfilePage';
+export { TutorialPage } from './TutorialPage';
 export { NotificationSettings } from './NotificationSettings';
 export {
   QuestCardSkeleton,

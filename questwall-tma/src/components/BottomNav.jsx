@@ -1,11 +1,12 @@
-import React from 'react';
+import { IconHome, IconQuest, IconTutorial, IconRewards, IconProfile } from './icons/CyberpunkIcons';
 
-export function BottomNav({ activeTab, onTabChange, theme, t }) {
+export function BottomNav({ activeTab, onTabChange, t }) {
   const tabs = [
-    { id: 'home', icon: '🏠', activeIcon: '🏠', labelKey: 'nav.home' },
-    { id: 'quests', icon: '🎯', activeIcon: '🎯', labelKey: 'nav.quests' },
-    { id: 'rewards', icon: '🎁', activeIcon: '🎁', labelKey: 'nav.rewards' },
-    { id: 'profile', icon: '👤', activeIcon: '👤', labelKey: 'nav.profile' },
+    { id: 'home', Icon: IconHome, labelKey: 'nav.home' },
+    { id: 'quests', Icon: IconQuest, labelKey: 'nav.quests' },
+    { id: 'tutorials', Icon: IconTutorial, labelKey: 'nav.tutorials' },
+    { id: 'rewards', Icon: IconRewards, labelKey: 'nav.rewards' },
+    { id: 'profile', Icon: IconProfile, labelKey: 'nav.profile' },
   ];
 
   const styles = {
@@ -14,64 +15,69 @@ export function BottomNav({ activeTab, onTabChange, theme, t }) {
       bottom: 0,
       left: 0,
       right: 0,
-      backgroundColor: theme.isDark ? 'rgba(28, 28, 29, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-      borderTop: `1px solid ${theme.secondaryBg}`,
+      background: 'rgba(12, 12, 25, 0.95)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderTop: '1px solid rgba(100, 100, 255, 0.15)',
       display: 'flex',
       justifyContent: 'space-around',
       alignItems: 'center',
-      padding: '8px 0',
-      // 底部安全区域适配 (iPhone X 等)
-      paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
-      // 左右安全区域适配 (横屏时)
-      paddingLeft: 'env(safe-area-inset-left)',
-      paddingRight: 'env(safe-area-inset-right)',
+      padding: '8px 10px',
+      paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
       zIndex: 1000,
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
     },
     tab: {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       gap: 4,
-      padding: '8px 16px',
+      padding: '6px 14px',
       cursor: 'pointer',
-      borderRadius: 12,
-      transition: 'all 0.2s ease',
       border: 'none',
       background: 'transparent',
+      backgroundColor: 'transparent',
       position: 'relative',
+      transition: 'all 0.3s ease',
+      textDecoration: 'none',
+      outline: 'none',
+      boxShadow: 'none',
+      WebkitAppearance: 'none',
+      WebkitTapHighlightColor: 'transparent',
     },
-    tabActive: {
-      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
+    iconWrapper: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.3s ease',
     },
-    icon: {
-      fontSize: 22,
-      transition: 'transform 0.2s ease',
-    },
-    iconActive: {
-      transform: 'scale(1.1)',
+    iconWrapperActive: {
+      transform: 'scale(1.15)',
     },
     label: {
-      fontSize: 11,
+      fontSize: 9,
       fontWeight: '600',
-      color: theme.hint,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255,255,255,0.4)',
       margin: 0,
-      transition: 'color 0.2s ease',
+      transition: 'all 0.3s ease',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     labelActive: {
-      color: theme.bg !== '#ffffff' ? '#7d8aff' : '#667eea',
-      fontWeight: '700',
+      color: '#00e5ff',
+      textShadow: '0 0 8px rgba(0, 229, 255, 0.5)',
     },
+    // 顶部发光指示条
     indicator: {
       position: 'absolute',
-      top: 2,
+      top: -8,
       left: '50%',
       transform: 'translateX(-50%)',
-      width: 4,
-      height: 4,
-      borderRadius: '50%',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      width: 30,
+      height: 3,
+      borderRadius: '0 0 2px 2px',
+      background: 'linear-gradient(90deg, #00e5ff, #bf5fff)',
+      boxShadow: '0 0 10px rgba(0, 229, 255, 0.8), 0 0 20px rgba(0, 229, 255, 0.4)',
     },
   };
 
@@ -79,29 +85,33 @@ export function BottomNav({ activeTab, onTabChange, theme, t }) {
     <nav style={styles.nav}>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
+        const IconComponent = tab.Icon;
         return (
-          <button
+          <div
             key={tab.id}
-            style={{
-              ...styles.tab,
-              ...(isActive ? styles.tabActive : {}),
-            }}
+            style={styles.tab}
             onClick={() => onTabChange(tab.id)}
           >
+            {/* 顶部发光指示条 - 只在选中时显示 */}
             {isActive && <div style={styles.indicator} />}
-            <span style={{
-              ...styles.icon,
-              ...(isActive ? styles.iconActive : {}),
+
+            <div style={{
+              ...styles.iconWrapper,
+              ...(isActive ? styles.iconWrapperActive : {}),
             }}>
-              {isActive ? tab.activeIcon : tab.icon}
-            </span>
+              <IconComponent
+                size={22}
+                color={isActive ? '#00e5ff' : 'rgba(255, 255, 255, 0.4)'}
+                active={isActive}
+              />
+            </div>
             <span style={{
               ...styles.label,
               ...(isActive ? styles.labelActive : {}),
             }}>
               {t ? t(tab.labelKey) : tab.id}
             </span>
-          </button>
+          </div>
         );
       })}
     </nav>

@@ -39,6 +39,8 @@ export declare class AuthService {
     }>;
     getUserById(userId: bigint): Promise<{
         id: bigint;
+        createdAt: Date;
+        updatedAt: Date;
         tgId: bigint;
         twitterId: string | null;
         username: string | null;
@@ -48,14 +50,15 @@ export declare class AuthService {
         walletAddr: string | null;
         locale: string;
         riskScore: number;
+        points: number;
         twitterUsername: string | null;
         twitterBindAt: Date | null;
         notificationPrefs: import("@prisma/client/runtime/library").JsonValue;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     getUserByTgId(tgId: bigint): Promise<{
         id: bigint;
+        createdAt: Date;
+        updatedAt: Date;
         tgId: bigint;
         twitterId: string | null;
         username: string | null;
@@ -65,11 +68,10 @@ export declare class AuthService {
         walletAddr: string | null;
         locale: string;
         riskScore: number;
+        points: number;
         twitterUsername: string | null;
         twitterBindAt: Date | null;
         notificationPrefs: import("@prisma/client/runtime/library").JsonValue;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     getNotificationPrefs(userId: bigint): Promise<{
         questComplete: boolean;

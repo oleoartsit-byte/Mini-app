@@ -210,6 +210,45 @@ export const riskApi = {
   getUserHistory: (userId) => request(`/admin/risk/user/${userId}`),
 };
 
+// 教程管理
+export const tutorialApi = {
+  // 获取教程列表
+  getList: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/admin/tutorials?${query}`);
+  },
+
+  // 获取教程详情
+  getDetail: (id) => request(`/admin/tutorials/${id}`),
+
+  // 创建教程
+  create: (data) =>
+    request('/admin/tutorials', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 更新教程
+  update: (id, data) =>
+    request(`/admin/tutorials/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // 删除教程
+  delete: (id) =>
+    request(`/admin/tutorials/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // 更新教程状态
+  updateStatus: (id, status) =>
+    request(`/admin/tutorials/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+};
+
 export default {
   auth: authApi,
   quest: questApi,
@@ -220,4 +259,5 @@ export default {
   payout: payoutApi,
   risk: riskApi,
   upload: uploadApi,
+  tutorial: tutorialApi,
 };

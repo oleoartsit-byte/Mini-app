@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { IconCheck, IconStar, IconDollar, IconGift } from './icons/CyberpunkIcons';
 
 export function Toast({ message, visible, onClose, type = 'success', position = 'center' }) {
   useEffect(() => {
@@ -12,17 +13,17 @@ export function Toast({ message, visible, onClose, type = 'success', position = 
 
   if (!visible) return null;
 
-  const getIcon = () => {
+  const getIcon = (size = 16) => {
     switch (type) {
-      case 'success': return '✓';
-      case 'error': return '✕';
-      case 'warning': return '!';
-      case 'stars': return '⭐';
-      case 'ton': return '💎';
-      case 'usdt': return '💵';
-      case 'points': return '🪙';
-      case 'refresh': return '↻';
-      default: return '✓';
+      case 'success': return <IconCheck size={size} color="#fff" />;
+      case 'error': return <span style={{ fontSize: size, fontWeight: '700' }}>✕</span>;
+      case 'warning': return <span style={{ fontSize: size, fontWeight: '700' }}>!</span>;
+      case 'stars': return <IconStar size={size} color="#fff" />;
+      case 'ton': return <IconDollar size={size} color="#fff" />;
+      case 'usdt': return <IconDollar size={size} color="#fff" />;
+      case 'points': return <IconGift size={size} color="#fff" />;
+      case 'refresh': return <span style={{ fontSize: size }}>↻</span>;
+      default: return <IconCheck size={size} color="#fff" />;
     }
   };
 
@@ -134,7 +135,7 @@ export function Toast({ message, visible, onClose, type = 'success', position = 
       <div style={styles.overlay}>
         <div style={styles.toast}>
           <div style={styles.iconWrapper}>
-            <span style={styles.icon}>{getIcon()}</span>
+            {getIcon(isSimple ? 16 : 18)}
           </div>
           <p style={styles.message}>{message}</p>
         </div>

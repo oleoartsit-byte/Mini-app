@@ -139,6 +139,7 @@ let AdminService = class AdminService {
                 reward: {
                     type: q.rewardType,
                     amount: q.rewardAmount.toString(),
+                    points: q.rewardPoints,
                     asset: q.rewardAsset,
                 },
                 limits: q.limits,
@@ -179,6 +180,7 @@ let AdminService = class AdminService {
             reward: {
                 type: quest.rewardType,
                 amount: quest.rewardAmount.toString(),
+                points: quest.rewardPoints,
                 asset: quest.rewardAsset,
             },
             limits: quest.limits,
@@ -203,6 +205,10 @@ let AdminService = class AdminService {
                 },
             });
         }
+        const rewardAmount = new library_1.Decimal(data.reward.amount);
+        const rewardPoints = data.reward.points !== undefined
+            ? data.reward.points
+            : Math.floor(rewardAmount.toNumber() * 10);
         const quest = await this.prisma.quest.create({
             data: {
                 ownerId: owner.id,
@@ -212,7 +218,8 @@ let AdminService = class AdminService {
                 description: data.description,
                 descriptionEn: data.descriptionEn,
                 rewardType: data.reward.type,
-                rewardAmount: new library_1.Decimal(data.reward.amount),
+                rewardAmount: rewardAmount,
+                rewardPoints: rewardPoints,
                 rewardAsset: data.reward.asset,
                 limits: data.limits || { dailyCap: 100, perUserCap: 1 },
                 targetUrl: data.targetUrl,
@@ -254,6 +261,8 @@ let AdminService = class AdminService {
             updateData.rewardType = data.reward.type;
         if (data.reward?.amount !== undefined)
             updateData.rewardAmount = new library_1.Decimal(data.reward.amount);
+        if (data.reward?.points !== undefined)
+            updateData.rewardPoints = data.reward.points;
         if (data.reward?.asset !== undefined)
             updateData.rewardAsset = data.reward.asset;
         await this.prisma.quest.update({
@@ -840,6 +849,257 @@ let AdminService = class AdminService {
         });
         return { success: true, message: '已从黑名单移除' };
     }
+    async getPendingReviews(page = 1, pageSize = 10, status) {
+        const skip = (page - 1) * pageSize;
+        const where = {
+            status: status || client_1.ActionStatus.SUBMITTED,
+            proofImage: { not: null },
+        };
+        const [items, total, pendingCount] = await Promise.all([
+            this.prisma.action.findMany({
+                where,
+                skip,
+                take: pageSize,
+                orderBy: { submittedAt: 'desc' },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            username: true,
+                            firstName: true,
+                            tgId: true,
+                            twitterUsername: true,
+                            riskScore: true,
+                        },
+                    },
+                    quest: {
+                        select: {
+                            id: true,
+                            type: true,
+                            title: true,
+                            targetUrl: true,
+                            rewardType: true,
+                            rewardAmount: true,
+                        },
+                    },
+                },
+            }),
+            this.prisma.action.count({ where }),
+            this.prisma.action.count({
+                where: { status: client_1.ActionStatus.SUBMITTED, proofImage: { not: null } },
+            }),
+        ]);
+        return {
+            items: items.map((action) => ({
+                id: action.id.toString(),
+                status: action.status,
+                proofImage: action.proofImage,
+                proof: action.proof,
+                submittedAt: action.submittedAt,
+                user: action.user ? {
+                    id: action.user.id.toString(),
+                    username: action.user.username || action.user.firstName || '-',
+                    tgId: action.user.tgId.toString(),
+                    twitterUsername: action.user.twitterUsername,
+                    riskScore: action.user.riskScore,
+                } : null,
+                quest: action.quest ? {
+                    id: action.quest.id.toString(),
+                    type: action.quest.type,
+                    title: action.quest.title,
+                    targetUrl: action.quest.targetUrl,
+                    rewardType: action.quest.rewardType,
+                    rewardAmount: action.quest.rewardAmount.toString(),
+                } : null,
+            })),
+            total,
+            pendingCount,
+            page,
+            pageSize,
+            totalPages: Math.ceil(total / pageSize),
+        };
+    }
+    async getReviewStats() {
+        const [pendingCount, approvedToday, rejectedToday] = await Promise.all([
+            this.prisma.action.count({
+                where: { status: client_1.ActionStatus.SUBMITTED, proofImage: { not: null } },
+            }),
+            this.prisma.action.count({
+                where: {
+                    status: client_1.ActionStatus.REWARDED,
+                    proofImage: { not: null },
+                    verifiedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+                },
+            }),
+            this.prisma.action.count({
+                where: {
+                    status: client_1.ActionStatus.REJECTED,
+                    proofImage: { not: null },
+                    verifiedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+                },
+            }),
+        ]);
+        return {
+            pending: pendingCount,
+            approvedToday,
+            rejectedToday,
+        };
+    }
+    async getReviewDetail(actionId) {
+        const action = await this.prisma.action.findUnique({
+            where: { id: actionId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        firstName: true,
+                        tgId: true,
+                        twitterId: true,
+                        twitterUsername: true,
+                        riskScore: true,
+                        createdAt: true,
+                    },
+                },
+                quest: {
+                    select: {
+                        id: true,
+                        type: true,
+                        title: true,
+                        description: true,
+                        targetUrl: true,
+                        rewardType: true,
+                        rewardAmount: true,
+                        rewardAsset: true,
+                    },
+                },
+            },
+        });
+        if (!action) {
+            throw new common_1.BadRequestException('记录不存在');
+        }
+        const userStats = await this.prisma.action.groupBy({
+            by: ['status'],
+            where: { userId: action.userId },
+            _count: { id: true },
+        });
+        return {
+            id: action.id.toString(),
+            status: action.status,
+            proofImage: action.proofImage,
+            proof: action.proof,
+            twitterId: action.twitterId,
+            claimedAt: action.claimedAt,
+            submittedAt: action.submittedAt,
+            verifiedAt: action.verifiedAt,
+            user: action.user ? {
+                id: action.user.id.toString(),
+                username: action.user.username || action.user.firstName || '-',
+                tgId: action.user.tgId.toString(),
+                twitterId: action.user.twitterId,
+                twitterUsername: action.user.twitterUsername,
+                riskScore: action.user.riskScore,
+                createdAt: action.user.createdAt,
+                stats: userStats.reduce((acc, s) => {
+                    acc[s.status] = s._count.id;
+                    return acc;
+                }, {}),
+            } : null,
+            quest: action.quest ? {
+                id: action.quest.id.toString(),
+                type: action.quest.type,
+                title: action.quest.title,
+                description: action.quest.description,
+                targetUrl: action.quest.targetUrl,
+                rewardType: action.quest.rewardType,
+                rewardAmount: action.quest.rewardAmount.toString(),
+                rewardAsset: action.quest.rewardAsset,
+            } : null,
+        };
+    }
+    async approveReview(actionId) {
+        const action = await this.prisma.action.findUnique({
+            where: { id: actionId },
+            include: {
+                quest: true,
+                user: { select: { tgId: true } },
+            },
+        });
+        if (!action) {
+            throw new common_1.BadRequestException('记录不存在');
+        }
+        if (action.status !== client_1.ActionStatus.SUBMITTED) {
+            throw new common_1.BadRequestException('只能审核待审核状态的记录');
+        }
+        const result = await this.prisma.$transaction(async (tx) => {
+            const updatedAction = await tx.action.update({
+                where: { id: actionId },
+                data: {
+                    status: client_1.ActionStatus.REWARDED,
+                    verifiedAt: new Date(),
+                },
+            });
+            const reward = await tx.reward.create({
+                data: {
+                    userId: action.userId,
+                    questId: action.questId,
+                    actionId: actionId,
+                    type: action.quest.rewardType,
+                    amount: action.quest.rewardAmount,
+                    asset: action.quest.rewardAsset,
+                    status: 'COMPLETED',
+                },
+            });
+            return { updatedAction, reward };
+        });
+        console.log(`✅ 审核通过: actionId=${actionId}, 奖励=${action.quest.rewardAmount} ${action.quest.rewardType}`);
+        if (action.user?.tgId) {
+            this.telegramService.sendQuestCompletedNotification(action.user.tgId, action.quest.title, Number(action.quest.rewardAmount), action.quest.rewardType).catch(err => console.error('发送奖励通知失败:', err));
+        }
+        return {
+            success: true,
+            message: '审核通过，奖励已发放',
+            reward: {
+                type: action.quest.rewardType,
+                amount: action.quest.rewardAmount.toString(),
+            },
+        };
+    }
+    async rejectReview(actionId, reason) {
+        const action = await this.prisma.action.findUnique({
+            where: { id: actionId },
+            include: {
+                quest: { select: { title: true } },
+                user: { select: { tgId: true } },
+            },
+        });
+        if (!action) {
+            throw new common_1.BadRequestException('记录不存在');
+        }
+        if (action.status !== client_1.ActionStatus.SUBMITTED) {
+            throw new common_1.BadRequestException('只能审核待审核状态的记录');
+        }
+        await this.prisma.action.update({
+            where: { id: actionId },
+            data: {
+                status: client_1.ActionStatus.REJECTED,
+                verifiedAt: new Date(),
+                proof: {
+                    ...(action.proof || {}),
+                    rejectReason: reason,
+                    rejectedAt: new Date().toISOString(),
+                },
+            },
+        });
+        console.log(`❌ 审核拒绝: actionId=${actionId}, 原因=${reason || '未说明'}`);
+        if (action.user?.tgId) {
+            this.telegramService.sendMessage(action.user.tgId, `❌ 您提交的任务「${action.quest.title}」审核未通过${reason ? `\n原因：${reason}` : ''}\n\n请重新完成任务并提交正确的截图。`).catch(err => console.error('发送拒绝通知失败:', err));
+        }
+        return {
+            success: true,
+            message: '已拒绝该审核',
+        };
+    }
     async getUserCompletedQuests(userId) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -908,6 +1168,153 @@ let AdminService = class AdminService {
                 totalReward: totalReward.toFixed(4),
             },
         };
+    }
+    async getTutorials(page = 1, pageSize = 10, status) {
+        const skip = (page - 1) * pageSize;
+        const where = status ? { status } : {};
+        const [items, total] = await Promise.all([
+            this.prisma.tutorial.findMany({
+                where,
+                skip,
+                take: pageSize,
+                orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+            }),
+            this.prisma.tutorial.count({ where }),
+        ]);
+        return {
+            items: items.map((t) => ({
+                id: t.id.toString(),
+                type: t.type,
+                category: t.category,
+                title: t.title,
+                titleEn: t.titleEn,
+                description: t.description,
+                descriptionEn: t.descriptionEn,
+                coverImage: t.coverImage,
+                videoUrl: t.videoUrl,
+                icon: t.icon,
+                sortOrder: t.sortOrder,
+                viewCount: t.viewCount,
+                status: t.status,
+                createdAt: t.createdAt,
+                updatedAt: t.updatedAt,
+            })),
+            total,
+            page,
+            pageSize,
+            totalPages: Math.ceil(total / pageSize),
+        };
+    }
+    async getTutorialDetail(id) {
+        const tutorial = await this.prisma.tutorial.findUnique({
+            where: { id },
+        });
+        if (!tutorial) {
+            throw new common_1.BadRequestException('教程不存在');
+        }
+        return {
+            id: tutorial.id.toString(),
+            type: tutorial.type,
+            category: tutorial.category,
+            title: tutorial.title,
+            titleEn: tutorial.titleEn,
+            description: tutorial.description,
+            descriptionEn: tutorial.descriptionEn,
+            content: tutorial.content,
+            contentEn: tutorial.contentEn,
+            coverImage: tutorial.coverImage,
+            videoUrl: tutorial.videoUrl,
+            images: tutorial.images,
+            icon: tutorial.icon,
+            sortOrder: tutorial.sortOrder,
+            viewCount: tutorial.viewCount,
+            status: tutorial.status,
+            createdAt: tutorial.createdAt,
+            updatedAt: tutorial.updatedAt,
+        };
+    }
+    async createTutorial(data) {
+        const tutorial = await this.prisma.tutorial.create({
+            data: {
+                type: data.type || 'ARTICLE',
+                category: data.category || 'other',
+                title: data.title,
+                titleEn: data.titleEn,
+                description: data.description,
+                descriptionEn: data.descriptionEn,
+                content: data.content,
+                contentEn: data.contentEn,
+                coverImage: data.coverImage,
+                videoUrl: data.videoUrl,
+                images: data.images || [],
+                icon: data.icon || '📖',
+                sortOrder: data.sortOrder || 0,
+                status: 'DRAFT',
+            },
+        });
+        return {
+            id: tutorial.id.toString(),
+            message: '教程创建成功',
+        };
+    }
+    async updateTutorial(id, data) {
+        const tutorial = await this.prisma.tutorial.findUnique({ where: { id } });
+        if (!tutorial) {
+            throw new common_1.BadRequestException('教程不存在');
+        }
+        const updateData = {};
+        if (data.type !== undefined)
+            updateData.type = data.type;
+        if (data.category !== undefined)
+            updateData.category = data.category;
+        if (data.title !== undefined)
+            updateData.title = data.title;
+        if (data.titleEn !== undefined)
+            updateData.titleEn = data.titleEn;
+        if (data.description !== undefined)
+            updateData.description = data.description;
+        if (data.descriptionEn !== undefined)
+            updateData.descriptionEn = data.descriptionEn;
+        if (data.content !== undefined)
+            updateData.content = data.content;
+        if (data.contentEn !== undefined)
+            updateData.contentEn = data.contentEn;
+        if (data.coverImage !== undefined)
+            updateData.coverImage = data.coverImage;
+        if (data.videoUrl !== undefined)
+            updateData.videoUrl = data.videoUrl;
+        if (data.images !== undefined)
+            updateData.images = data.images;
+        if (data.icon !== undefined)
+            updateData.icon = data.icon;
+        if (data.sortOrder !== undefined)
+            updateData.sortOrder = data.sortOrder;
+        await this.prisma.tutorial.update({
+            where: { id },
+            data: updateData,
+        });
+        return { message: '教程更新成功' };
+    }
+    async updateTutorialStatus(id, status) {
+        const tutorial = await this.prisma.tutorial.findUnique({ where: { id } });
+        if (!tutorial) {
+            throw new common_1.BadRequestException('教程不存在');
+        }
+        await this.prisma.tutorial.update({
+            where: { id },
+            data: { status },
+        });
+        return { message: `教程状态已更新为 ${status}` };
+    }
+    async deleteTutorial(id) {
+        const tutorial = await this.prisma.tutorial.findUnique({ where: { id } });
+        if (!tutorial) {
+            throw new common_1.BadRequestException('教程不存在');
+        }
+        await this.prisma.tutorial.delete({
+            where: { id },
+        });
+        return { message: '教程已删除' };
     }
 };
 exports.AdminService = AdminService;

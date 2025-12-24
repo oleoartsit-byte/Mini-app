@@ -4,6 +4,7 @@ import zhCN from 'antd/locale/zh_CN';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Quests from './pages/Quests';
+import Tutorials from './pages/Tutorials';
 import Users from './pages/Users';
 import Rewards from './pages/Rewards';
 import Payouts from './pages/Payouts';
@@ -15,6 +16,7 @@ import { authApi } from './services/api';
 const pages = {
   dashboard: Dashboard,
   quests: Quests,
+  tutorials: Tutorials,
   users: Users,
   rewards: Rewards,
   payouts: Payouts,

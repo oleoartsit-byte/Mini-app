@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { IconTelegram, IconTwitter, IconSearch } from './icons/CyberpunkIcons';
 
-export function QuestFilter({ onFilterChange, onSearchChange, theme, t }) {
+export function QuestFilter({ onFilterChange, onSearchChange, t }) {
   const QUEST_TYPES = [
-    { key: 'all', label: t ? t('filter.all') : '全部', icon: '📋' },
-    { key: 'telegram', label: t ? t('filter.telegram') : 'TG任务', icon: '📱' },
-    { key: 'twitter', label: t ? t('filter.twitter') : '推特任务', icon: '🐦' },
+    { key: 'all', label: t ? t('filter.all') : '全部', icon: null },
+    { key: 'telegram', label: t ? t('filter.telegram') : 'TG任务', icon: <IconTelegram size={14} color="currentColor" /> },
+    { key: 'twitter', label: t ? t('filter.twitter') : '推特任务', icon: <IconTwitter size={14} color="currentColor" /> },
   ];
   const [activeType, setActiveType] = useState('all');
   const [searchText, setSearchText] = useState('');
@@ -23,20 +24,26 @@ export function QuestFilter({ onFilterChange, onSearchChange, theme, t }) {
   const styles = {
     container: {
       padding: '12px 16px',
-      backgroundColor: theme.secondaryBg,
+      position: 'relative',
+      zIndex: 1,
+      isolation: 'isolate',
     },
     searchBox: {
       display: 'flex',
       alignItems: 'center',
-      backgroundColor: theme.bg,
+      background: 'rgba(20, 20, 45, 0.75)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
       borderRadius: 12,
       padding: '10px 14px',
       marginBottom: 12,
-      border: `1px solid ${theme.hint}20`,
+      border: '1px solid rgba(0, 229, 255, 0.25)',
+      position: 'relative',
+      zIndex: 1,
     },
     searchIcon: {
       fontSize: 16,
-      color: theme.hint,
+      color: 'rgba(255, 255, 255, 0.4)',
       marginRight: 10,
     },
     searchInput: {
@@ -44,13 +51,14 @@ export function QuestFilter({ onFilterChange, onSearchChange, theme, t }) {
       border: 'none',
       outline: 'none',
       backgroundColor: 'transparent',
-      fontSize: 15,
-      color: theme.text,
+      fontSize: 14,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#fff',
     },
     clearButton: {
       padding: '4px 8px',
       fontSize: 14,
-      color: theme.hint,
+      color: 'rgba(255, 255, 255, 0.5)',
       backgroundColor: 'transparent',
       border: 'none',
       cursor: 'pointer',
@@ -62,28 +70,43 @@ export function QuestFilter({ onFilterChange, onSearchChange, theme, t }) {
       WebkitOverflowScrolling: 'touch',
       scrollbarWidth: 'none',
       msOverflowStyle: 'none',
+      paddingBottom: 4,
+      position: 'relative',
+      zIndex: 1,
     },
     filterChip: {
       display: 'flex',
       alignItems: 'center',
-      gap: 4,
-      padding: '8px 14px',
-      borderRadius: 20,
+      gap: 6,
+      padding: '10px 18px',
+      borderRadius: 24,
       fontSize: 13,
-      fontWeight: '500',
+      fontWeight: '600',
+      fontFamily: "'Rajdhani', sans-serif",
       whiteSpace: 'nowrap',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      border: 'none',
+      flexShrink: 0,
+      // 默认使用 inactive 样式，避免闪烁
+      background: 'rgba(20, 20, 45, 0.8)',
+      color: 'rgba(255, 255, 255, 0.6)',
+      border: '1px solid rgba(0, 229, 255, 0.25)',
+      boxShadow: 'none',
+      transition: 'background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
+      position: 'relative',
+      zIndex: 1,
+      isolation: 'isolate',
     },
     activeChip: {
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: '#fff',
+      background: 'rgba(0, 229, 255, 0.15)',
+      color: '#00e5ff',
+      borderColor: 'rgba(0, 229, 255, 0.5)',
+      boxShadow: '0 0 12px rgba(0, 229, 255, 0.2), inset 0 0 20px rgba(0, 229, 255, 0.1)',
     },
     inactiveChip: {
-      backgroundColor: theme.bg,
-      color: theme.text,
-      border: `1px solid ${theme.hint}20`,
+      background: 'rgba(20, 20, 45, 0.8)',
+      color: 'rgba(255, 255, 255, 0.6)',
+      borderColor: 'rgba(0, 229, 255, 0.25)',
+      boxShadow: 'none',
     },
   };
 
@@ -91,7 +114,7 @@ export function QuestFilter({ onFilterChange, onSearchChange, theme, t }) {
     <div style={styles.container}>
       {/* 搜索框 */}
       <div style={styles.searchBox}>
-        <span style={styles.searchIcon}>🔍</span>
+        <span style={styles.searchIcon}><IconSearch size={16} color="rgba(255, 255, 255, 0.4)" /></span>
         <input
           type="text"
           placeholder={t ? t('filter.searchPlaceholder') : '搜索任务...'}
@@ -114,19 +137,23 @@ export function QuestFilter({ onFilterChange, onSearchChange, theme, t }) {
 
       {/* 类型筛选 */}
       <div style={styles.filterRow}>
-        {QUEST_TYPES.map(type => (
-          <button
-            key={type.key}
-            onClick={() => handleTypeChange(type.key)}
-            style={{
-              ...styles.filterChip,
-              ...(activeType === type.key ? styles.activeChip : styles.inactiveChip),
-            }}
-          >
-            <span>{type.icon}</span>
-            <span>{type.label}</span>
-          </button>
-        ))}
+        {QUEST_TYPES.map(type => {
+          const isActive = activeType === type.key;
+          return (
+            <button
+              key={type.key}
+              onClick={() => handleTypeChange(type.key)}
+              style={{
+                ...styles.filterChip,
+                ...(isActive ? styles.activeChip : styles.inactiveChip),
+              }}
+            >
+              {type.key === 'telegram' && <span style={{ display: 'flex', alignItems: 'center' }}><IconTelegram size={14} color="#00e5ff" /></span>}
+              {type.key === 'twitter' && <span style={{ display: 'flex', alignItems: 'center' }}><IconTwitter size={14} color="#00e5ff" /></span>}
+              {type.label}
+            </button>
+          );
+        })}
       </div>
 
       <style>{`

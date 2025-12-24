@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var QuestsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QuestsService = void 0;
 const common_1 = require("@nestjs/common");
@@ -16,15 +17,18 @@ const telegram_service_1 = require("../telegram/telegram.service");
 const twitter_service_1 = require("../twitter/twitter.service");
 const risk_service_1 = require("../risk/risk.service");
 const auth_service_1 = require("../auth/auth.service");
+const ai_service_1 = require("../ai/ai.service");
 const client_1 = require("@prisma/client");
 const library_1 = require("@prisma/client/runtime/library");
-let QuestsService = class QuestsService {
-    constructor(prisma, telegramService, twitterService, riskService, authService) {
+let QuestsService = QuestsService_1 = class QuestsService {
+    constructor(prisma, telegramService, twitterService, riskService, authService, aiService) {
         this.prisma = prisma;
         this.telegramService = telegramService;
         this.twitterService = twitterService;
         this.riskService = riskService;
         this.authService = authService;
+        this.aiService = aiService;
+        this.logger = new common_1.Logger(QuestsService_1.name);
     }
     getLocalizedText(quest, field, lang = 'zh') {
         if (lang === 'en') {
@@ -69,6 +73,7 @@ let QuestsService = class QuestsService {
             reward: {
                 type: quest.rewardType,
                 amount: quest.rewardAmount.toString(),
+                points: quest.rewardPoints || Math.floor(Number(quest.rewardAmount) * 10),
                 assetAddr: quest.rewardAsset
             },
             limits: quest.limits,
@@ -106,6 +111,7 @@ let QuestsService = class QuestsService {
             reward: {
                 type: quest.rewardType,
                 amount: quest.rewardAmount.toString(),
+                points: quest.rewardPoints || Math.floor(Number(quest.rewardAmount) * 10),
                 assetAddr: quest.rewardAsset
             },
             limits: quest.limits,
@@ -266,6 +272,114 @@ let QuestsService = class QuestsService {
             }
         }
         const verificationResult = await this.verifyQuest(userId, quest);
+        if (verificationResult.requiresProofImage) {
+            if (!dto.proofImage) {
+                return {
+                    success: false,
+                    message: '请上传任务完成截图',
+                    status: action.status,
+                    requiresProofImage: true
+                };
+            }
+            if (this.aiService.isAvailable() && user?.twitterUsername) {
+                this.logger.log(`AI 验证截图: 用户 @${user.twitterUsername}, 图片 ${dto.proofImage}`);
+                const aiResult = await this.aiService.verifyLikeScreenshot(dto.proofImage, user.twitterUsername, quest.targetUrl || undefined);
+                this.logger.log(`AI 验证结果: ${JSON.stringify(aiResult)}`);
+                if (aiResult.isValid && aiResult.confidence >= 0.8 && !aiResult.needsManualReview) {
+                    const pointsToAdd = quest.rewardPoints || Math.floor(Number(quest.rewardAmount) * 10);
+                    const result = await this.prisma.$transaction(async (tx) => {
+                        const updatedAction = await tx.action.update({
+                            where: { id: action.id },
+                            data: {
+                                proof: { ...dto.proof, aiVerification: JSON.parse(JSON.stringify(aiResult)) },
+                                proofImage: dto.proofImage,
+                                status: client_1.ActionStatus.REWARDED,
+                                submittedAt: new Date(),
+                                verifiedAt: new Date(),
+                                twitterId: user.twitterId || undefined,
+                            }
+                        });
+                        const reward = await tx.reward.create({
+                            data: {
+                                userId,
+                                questId,
+                                actionId: action.id,
+                                type: quest.rewardType,
+                                amount: quest.rewardAmount,
+                                asset: quest.rewardAsset,
+                                status: 'COMPLETED'
+                            }
+                        });
+                        await tx.user.update({
+                            where: { id: userId },
+                            data: { points: { increment: pointsToAdd } }
+                        });
+                        await this.processInviterCommission(tx, userId, quest.rewardAmount);
+                        return { updatedAction, reward, pointsToAdd };
+                    });
+                    if (user.tgId) {
+                        const canNotify = await this.authService.canSendNotification(userId, 'reward');
+                        if (canNotify) {
+                            this.telegramService.sendQuestCompletedNotification(user.tgId, quest.title, Number(quest.rewardAmount), quest.rewardType).catch(err => console.error('发送奖励通知失败:', err));
+                        }
+                    }
+                    return {
+                        success: true,
+                        message: `${aiResult.reason} 奖励已发放！`,
+                        actionId: result.updatedAction.id.toString(),
+                        status: result.updatedAction.status,
+                        verified: true,
+                        reward: {
+                            type: quest.rewardType,
+                            amount: quest.rewardAmount.toString(),
+                            points: result.pointsToAdd
+                        }
+                    };
+                }
+                if (!aiResult.isValid && !aiResult.needsManualReview) {
+                    return {
+                        success: false,
+                        message: aiResult.reason || '截图验证失败',
+                        status: action.status,
+                        verified: false
+                    };
+                }
+                await this.prisma.action.update({
+                    where: { id: action.id },
+                    data: {
+                        proof: { ...dto.proof, aiVerification: JSON.parse(JSON.stringify(aiResult)) },
+                        proofImage: dto.proofImage,
+                        status: client_1.ActionStatus.SUBMITTED,
+                        submittedAt: new Date(),
+                        twitterId: user.twitterId || undefined,
+                    }
+                });
+                return {
+                    success: true,
+                    message: aiResult.reason || '截图已提交，等待审核',
+                    status: client_1.ActionStatus.SUBMITTED,
+                    verified: false,
+                    pendingReview: true
+                };
+            }
+            await this.prisma.action.update({
+                where: { id: action.id },
+                data: {
+                    proof: dto.proof,
+                    proofImage: dto.proofImage,
+                    status: client_1.ActionStatus.SUBMITTED,
+                    submittedAt: new Date(),
+                    twitterId: user?.twitterId || undefined,
+                }
+            });
+            return {
+                success: true,
+                message: '截图已提交，等待审核',
+                status: client_1.ActionStatus.SUBMITTED,
+                verified: false,
+                pendingReview: true
+            };
+        }
         if (!verificationResult.verified) {
             return {
                 success: false,
@@ -273,6 +387,7 @@ let QuestsService = class QuestsService {
                 status: action.status
             };
         }
+        const pointsToAdd = quest.rewardPoints || Math.floor(Number(quest.rewardAmount) * 10);
         const result = await this.prisma.$transaction(async (tx) => {
             const updatedAction = await tx.action.update({
                 where: { id: action.id },
@@ -295,8 +410,12 @@ let QuestsService = class QuestsService {
                     status: 'COMPLETED'
                 }
             });
+            await tx.user.update({
+                where: { id: userId },
+                data: { points: { increment: pointsToAdd } }
+            });
             await this.processInviterCommission(tx, userId, quest.rewardAmount);
-            return { updatedAction, reward };
+            return { updatedAction, reward, pointsToAdd };
         });
         if (user?.tgId) {
             const canNotify = await this.authService.canSendNotification(userId, 'reward');
@@ -314,7 +433,8 @@ let QuestsService = class QuestsService {
             verified: true,
             reward: {
                 type: quest.rewardType,
-                amount: quest.rewardAmount.toString()
+                amount: quest.rewardAmount.toString(),
+                points: result.pointsToAdd
             }
         };
     }
@@ -381,16 +501,10 @@ let QuestsService = class QuestsService {
                     message: '请先在个人资料页绑定您的 Twitter 账号，以便验证转发状态'
                 };
             case client_1.QuestType.LIKE_TWITTER:
-                if (!quest.targetUrl) {
-                    return { verified: true, message: 'Twitter 点赞任务完成！' };
-                }
-                if (verifyUser.twitterId) {
-                    const likeResult = await this.twitterService.verifyLikeTask(quest.targetUrl, verifyUser.twitterId);
-                    return likeResult;
-                }
                 return {
                     verified: false,
-                    message: '请先在个人资料页绑定您的 Twitter 账号，以便验证点赞状态'
+                    message: '需要提交截图',
+                    requiresProofImage: true
                 };
             case client_1.QuestType.COMMENT_TWITTER:
                 if (!quest.targetUrl) {
@@ -564,12 +678,13 @@ let QuestsService = class QuestsService {
     }
 };
 exports.QuestsService = QuestsService;
-exports.QuestsService = QuestsService = __decorate([
+exports.QuestsService = QuestsService = QuestsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         telegram_service_1.TelegramService,
         twitter_service_1.TwitterService,
         risk_service_1.RiskService,
-        auth_service_1.AuthService])
+        auth_service_1.AuthService,
+        ai_service_1.AiService])
 ], QuestsService);
 //# sourceMappingURL=quests.service.js.map

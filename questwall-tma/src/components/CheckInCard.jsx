@@ -60,21 +60,21 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, t }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: 12,
+      gap: 10,
       position: 'relative',
       zIndex: 1,
     },
     left: {
       display: 'flex',
       alignItems: 'center',
-      gap: 12,
+      gap: 10,
       flex: 1,
       minWidth: 0,
     },
     iconWrapper: {
-      width: 46,
-      height: 46,
-      borderRadius: 12,
+      width: 42,
+      height: 42,
+      borderRadius: 10,
       background: 'linear-gradient(135deg, #ffc107, #ff9500)',
       display: 'flex',
       alignItems: 'center',
@@ -126,8 +126,8 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, t }) {
       flexShrink: 0,
     },
     checkInButton: {
-      padding: '10px 14px',
-      fontSize: 11,
+      padding: '10px 12px',
+      fontSize: 10,
       fontWeight: '700',
       fontFamily: "'Orbitron', sans-serif",
       borderRadius: 12,
@@ -142,8 +142,8 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, t }) {
       whiteSpace: 'nowrap',
     },
     makeupButton: {
-      padding: '10px 12px',
-      fontSize: 10,
+      padding: '10px 10px',
+      fontSize: 9,
       fontWeight: '600',
       borderRadius: 12,
       border: '1px solid rgba(255,255,255,0.15)',
@@ -266,12 +266,12 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, t }) {
     <div style={styles.section}>
       <div style={styles.content}>
         <div style={styles.left}>
-          <div style={styles.iconWrapper}><IconGift size={22} color="#fff" /></div>
+          <div style={styles.iconWrapper}><IconGift size={20} color="#fff" /></div>
           <div style={styles.textContainer}>
             <p style={styles.title}>DAILY CHECK-IN</p>
             <p style={styles.subtitle}>
               {streak > 0
-                ? (t ? `${t('checkIn.streak')} ${streak} ${t('checkIn.days')}` : `${streak} day streak`)
+                ? (t ? `${t('checkIn.streak')} ${streak} ${streak === 1 ? t('checkIn.day') : t('checkIn.days')}` : `${streak} day streak`)
                 : (t ? t('checkIn.checkInBtn') : 'Start checking in')}
             </p>
             {!todayChecked && (

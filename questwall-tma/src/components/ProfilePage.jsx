@@ -2,42 +2,7 @@ import { useState } from 'react';
 import { NotificationSettings } from './NotificationSettings';
 import { ThemeSelector } from './ThemeSelector';
 import { IconTwitter, IconBell, IconGlobe, IconMedal, IconCheck, IconFire, IconUsers, IconArrowRight } from './icons/CyberpunkIcons';
-
-// 等级经验配置（与 UserCard 保持一致）
-const LEVEL_CONFIG = {
-  baseExp: 3,      // 1级升2级需要的任务数
-  expIncrement: 2, // 每升一级增加的任务数
-  maxLevel: 99,    // 最大等级
-};
-
-// 计算到达某等级所需的总任务数
-const getTotalExpForLevel = (level) => {
-  if (level <= 1) return 0;
-  const n = level - 1;
-  const firstTerm = LEVEL_CONFIG.baseExp;
-  const lastTerm = LEVEL_CONFIG.baseExp + (n - 1) * LEVEL_CONFIG.expIncrement;
-  return Math.floor(n * (firstTerm + lastTerm) / 2);
-};
-
-// 根据完成任务数计算等级和经验百分比
-const calculateLevelInfo = (completedCount) => {
-  let level = 1;
-  while (level < LEVEL_CONFIG.maxLevel) {
-    const expNeededForNextLevel = getTotalExpForLevel(level + 1);
-    if (completedCount < expNeededForNextLevel) {
-      break;
-    }
-    level++;
-  }
-  const expForCurrentLevel = getTotalExpForLevel(level);
-  const expForNextLevel = getTotalExpForLevel(level + 1);
-  const expInCurrentLevel = completedCount - expForCurrentLevel;
-  const expNeededForNextLevel = expForNextLevel - expForCurrentLevel;
-  const expPercent = level >= LEVEL_CONFIG.maxLevel
-    ? 100
-    : Math.min(99, Math.floor((expInCurrentLevel / expNeededForNextLevel) * 100));
-  return { level, expPercent, currentExp: expInCurrentLevel, nextLevelExp: expNeededForNextLevel };
-};
+import { calculateLevelInfo, getLevelTitle } from '../utils/levelUtils';
 
 export function ProfilePage({
   user,
@@ -66,15 +31,6 @@ export function ProfilePage({
   const levelInfo = calculateLevelInfo(completedCount);
   const level = levelInfo.level;
   const levelProgress = levelInfo.expPercent;
-
-  // 根据等级获取称号
-  const getLevelTitle = (level) => {
-    if (level >= 50) return t ? t('user.legendary') : '传奇玩家';
-    if (level >= 30) return t ? t('user.master') : '大师玩家';
-    if (level >= 15) return t ? t('user.elite') : '精英玩家';
-    if (level >= 5) return t ? t('user.advanced') : '进阶玩家';
-    return t ? t('user.newbie') : '新手玩家';
-  };
 
   const getUserDisplayName = () => {
     if (user) {
@@ -424,7 +380,7 @@ export function ProfilePage({
             <div style={styles.levelBadge}>
               <IconMedal size={16} color="#ffc107" />
               <span>Lv.{level}</span>
-              <span style={styles.levelTitle}>{getLevelTitle(level)}</span>
+              <span style={styles.levelTitle}>{getLevelTitle(level, t)}</span>
             </div>
             <span style={styles.levelPoints}>{levelInfo.currentExp}/{levelInfo.nextLevelExp}</span>
           </div>

@@ -117,7 +117,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
     const isERC20 = trimmedAddress.startsWith('0x') && trimmedAddress.length === 42;
 
     if (!isTRC20 && !isERC20) {
-      setError('请输入有效的 TRC20 或 ERC20 地址');
+      setError(t ? t('withdraw.errorAddressFormat') : '请输入有效的 TRC20 或 ERC20 地址');
       return;
     }
 
@@ -128,10 +128,10 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
         setSubmitResult(result);
         setStep('success');
       } else {
-        setError(result.message || '提现申请失败');
+        setError(result.message || (t ? t('withdraw.errorFailed') : '提现申请失败'));
       }
     } catch (err) {
-      setError('网络错误，请重试');
+      setError(t ? t('withdraw.errorNetwork') : '网络错误，请重试');
     } finally {
       setLoading(false);
     }
@@ -581,7 +581,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
     <>
       {/* 余额卡片 */}
       <div style={styles.balanceCard}>
-        <div style={styles.balanceLabel}>可提现余额</div>
+        <div style={styles.balanceLabel}>{t ? t('withdraw.withdrawableBalance') : '可提现余额'}</div>
         <div style={styles.balanceValue}>
           {currentBalance.toFixed(2)}
           <span style={styles.balanceUnit}>USDT</span>
@@ -621,19 +621,19 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
       <div style={styles.addressSection}>
         <label style={styles.addressLabel}>
           <IconTarget size={14} color="#00e5ff" />
-          收款地址
+          {t ? t('withdraw.recipientAddress') : '收款地址'}
         </label>
         <input
           type="text"
           style={styles.addressInput}
-          placeholder="输入 TRC20 或 ERC20 钱包地址"
+          placeholder={t ? t('withdraw.addressPlaceholderFull') : '输入 TRC20 或 ERC20 钱包地址'}
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           onFocus={(e) => e.target.style.borderColor = '#00e5ff'}
           onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
         />
         <div style={styles.addressHint}>
-          支持 TRC20 (T开头) 和 ERC20 (0x开头) 地址
+          {t ? t('withdraw.addressHint') : '支持 TRC20 (T开头) 和 ERC20 (0x开头) 地址'}
         </div>
       </div>
 
@@ -642,21 +642,21 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
         <div style={{ ...styles.infoRow, ...styles.infoRowBorder }}>
           <span style={styles.infoLabel}>
             <IconClock size={14} color="#00e5ff" />
-            最低提现
+            {t ? t('withdraw.minAmount') : '最低提现'}
           </span>
           <span style={styles.infoValue}>{minAmount} USDT</span>
         </div>
         <div style={{ ...styles.infoRow, ...styles.infoRowBorder }}>
           <span style={styles.infoLabel}>
             <IconDollar size={14} color="#00e5ff" />
-            手续费
+            {t ? t('withdraw.fee') : '手续费'}
           </span>
-          <span style={{ ...styles.infoValue, color: '#39ff14' }}>免费</span>
+          <span style={{ ...styles.infoValue, color: '#39ff14' }}>{t ? t('withdraw.feeAmount') : '免费'}</span>
         </div>
         <div style={styles.infoRow}>
           <span style={styles.infoLabel}>
             <IconStar size={14} color="#00e5ff" />
-            预计到账
+            {t ? t('withdraw.estimatedArrival') : '预计到账'}
           </span>
           <span style={{ ...styles.infoValue, ...styles.infoHighlight }}>
             {calculateActualAmount(amount)} USDT
@@ -681,12 +681,12 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
         {loading ? (
           <>
             <div style={styles.loadingSpinner} />
-            提交中...
+            {t ? t('withdraw.submitting') : '提交中...'}
           </>
         ) : (
           <>
             <IconWithdraw size={16} color="#000" />
-            提交提现申请
+            {t ? t('withdraw.submitWithdraw') : '提交提现申请'}
           </>
         )}
       </button>
@@ -694,7 +694,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
       {/* 底部提示 */}
       <div style={styles.noteWrapper}>
         <p style={styles.note}>
-          <IconInfo size={12} color="rgba(255, 255, 255, 0.4)" style={{ marginRight: 4, verticalAlign: 'middle' }} /> 提现申请提交后，将由客服人员审核并手动转账，预计 1-3 个工作日内处理
+          <IconInfo size={12} color="rgba(255, 255, 255, 0.4)" style={{ marginRight: 4, verticalAlign: 'middle' }} /> {t ? t('withdraw.noteFull') : '提现申请提交后，将由客服人员审核并手动转账，预计 1-3 个工作日内处理'}
         </p>
       </div>
     </>
@@ -704,24 +704,23 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
   const renderSuccess = () => (
     <div style={styles.successWrapper}>
       <div style={styles.successIcon}><IconCheck size={64} color="#39ff14" /></div>
-      <div style={styles.successTitle}>提现申请已提交</div>
+      <div style={styles.successTitle}>{t ? t('withdraw.successTitle') : '提现申请已提交'}</div>
       <div style={styles.successMessage}>
-        您的提现申请已成功提交，正在等待审核。<br/>
-        审核通过后，客服将在 1-3 个工作日内为您转账。
+        {t ? t('withdraw.successMessage') : '您的提现申请已成功提交，正在等待审核。审核通过后，客服将在 1-3 个工作日内为您转账。'}
       </div>
 
       {submitResult && (
         <div style={styles.successDetail}>
           <div style={styles.successDetailRow}>
-            <span style={styles.successDetailLabel}>申请金额</span>
+            <span style={styles.successDetailLabel}>{t ? t('withdraw.requestedAmount') : '申请金额'}</span>
             <span style={styles.successDetailValue}>{submitResult.requestedAmount} USDT</span>
           </div>
           <div style={styles.successDetailRow}>
-            <span style={styles.successDetailLabel}>手续费</span>
-            <span style={{ ...styles.successDetailValue, color: '#39ff14' }}>免费</span>
+            <span style={styles.successDetailLabel}>{t ? t('withdraw.fee') : '手续费'}</span>
+            <span style={{ ...styles.successDetailValue, color: '#39ff14' }}>{t ? t('withdraw.feeAmount') : '免费'}</span>
           </div>
           <div style={{ ...styles.successDetailRow, borderBottom: 'none' }}>
-            <span style={styles.successDetailLabel}>预计到账</span>
+            <span style={styles.successDetailLabel}>{t ? t('withdraw.estimatedArrival') : '预计到账'}</span>
             <span style={{ ...styles.successDetailValue, color: assetColor }}>
               {submitResult.actualAmount || submitResult.requestedAmount} USDT
             </span>
@@ -737,14 +736,14 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
         }}
       >
         <IconHistory size={16} color="#000" />
-        查看提现记录
+        {t ? t('withdraw.viewHistory') : '查看提现记录'}
       </button>
 
       <button
         style={styles.secondaryButton}
         onClick={handleClose}
       >
-        关闭
+        {t ? t('withdraw.close') : '关闭'}
       </button>
     </div>
   );
@@ -755,12 +754,12 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
       {loadingHistory ? (
         <div style={styles.emptyHistory}>
           <div style={styles.loadingSpinner} />
-          <div style={{ marginTop: 12 }}>加载中...</div>
+          <div style={{ marginTop: 12 }}>{t ? t('withdraw.loading') : '加载中...'}</div>
         </div>
       ) : withdrawHistory.length === 0 ? (
         <div style={styles.emptyHistory}>
           <div style={styles.emptyIcon}><IconHistory size={48} color="rgba(255, 255, 255, 0.3)" /></div>
-          <div>暂无提现记录</div>
+          <div>{t ? t('withdraw.noHistory') : '暂无提现记录'}</div>
         </div>
       ) : (
         <div style={styles.historyList}>
@@ -780,18 +779,18 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
                     alignItems: 'center',
                     gap: 4,
                   }}>
-                    {getStatusIcon(status.iconType, status.color)} {status.label}
+                    {getStatusIcon(status.iconType, status.color)} {t ? t(`withdraw.status.${item.status.toLowerCase()}`) || status.label : status.label}
                   </span>
                 </div>
                 <div style={styles.historyAddress}>
-                  收款地址: {item.toAddress}
+                  {t ? t('withdraw.toAddress') : '收款地址'}: {item.toAddress}
                 </div>
                 <div style={styles.historyTime}>
-                  申请时间: {new Date(item.createdAt).toLocaleString()}
+                  {t ? t('withdraw.applyTime') : '申请时间'}: {new Date(item.createdAt).toLocaleString()}
                 </div>
                 {item.processedAt && (
                   <div style={styles.historyTime}>
-                    处理时间: {new Date(item.processedAt).toLocaleString()}
+                    {t ? t('withdraw.processTime') : '处理时间'}: {new Date(item.processedAt).toLocaleString()}
                   </div>
                 )}
               </div>
@@ -804,7 +803,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
         style={styles.secondaryButton}
         onClick={() => setStep('form')}
       >
-        返回提现
+        {t ? t('withdraw.backToWithdraw') : '返回提现'}
       </button>
     </>
   );
@@ -820,7 +819,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
           <div style={styles.titleWrapper}>
             <div style={styles.titleIcon}><IconDollar size={18} color="#fff" /></div>
             <h3 style={styles.title}>
-              {step === 'history' ? '提现记录' : step === 'success' ? '提交成功' : 'USDT 提现'}
+              {step === 'history' ? (t ? t('withdraw.historyTitle') : '提现记录') : step === 'success' ? (t ? t('withdraw.submitSuccess') : '提交成功') : (t ? t('withdraw.usdtTitle') : 'USDT 提现')}
             </h3>
           </div>
           <button style={styles.closeButton} onClick={handleClose}>×</button>
@@ -837,7 +836,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
               }}
               onClick={() => setStep('form')}
             >
-              提现
+              {t ? t('withdraw.tabWithdraw') : '提现'}
             </button>
             <button
               style={{
@@ -850,7 +849,7 @@ export function WithdrawModal({ visible, onClose, wallet, onWithdraw, t, api }) 
                 loadHistory();
               }}
             >
-              记录
+              {t ? t('withdraw.tabHistory') : '记录'}
             </button>
           </div>
         )}

@@ -12,8 +12,9 @@ import {
   InputNumber,
   message,
   Popconfirm,
+  Divider,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, MenuOutlined } from '@ant-design/icons';
 import { questApi } from '../services/api';
 
 const { TextArea } = Input;
@@ -114,6 +115,7 @@ export default function Quests() {
         rewardAmount: quest.reward?.amount,
         rewardType: quest.reward?.type,
         rewardPoints: quest.reward?.points,
+        stepDetails: quest.stepDetails || [],
       });
     } else {
       form.resetFields();
@@ -135,6 +137,19 @@ export default function Quests() {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+
+      // 处理步骤详情，过滤掉空步骤
+      const stepDetails = (values.stepDetails || [])
+        .filter(step => step.title || step.titleEn)
+        .map(step => ({
+          title: step.title || '',
+          titleEn: step.titleEn || '',
+          desc: step.desc || '',
+          descEn: step.descEn || '',
+          image: step.image || null,
+          video: step.video || null,
+        }));
+
       const data = {
         type: values.type,
         title: values.title,
@@ -153,6 +168,7 @@ export default function Quests() {
           dailyCap: values.dailyCap || 100,
           perUserCap: values.perUserCap || 1,
         },
+        stepDetails: stepDetails.length > 0 ? stepDetails : null,
       };
 
       if (editingQuest) {
@@ -432,6 +448,110 @@ export default function Quests() {
               <InputNumber min={1} defaultValue={1} />
             </Form.Item>
           </Space>
+
+          <Divider orientation="left">步骤详情（可选）</Divider>
+          <p style={{ color: '#888', marginBottom: 16, fontSize: 13 }}>
+            自定义任务步骤说明，支持添加图片和视频。留空则使用默认步骤。
+          </p>
+
+          <Form.List name="stepDetails">
+            {(fields, { add, remove, move }) => (
+              <>
+                {fields.map(({ key, name, ...restField }, index) => (
+                  <Card
+                    key={key}
+                    size="small"
+                    style={{ marginBottom: 12, background: '#fafafa' }}
+                    title={
+                      <Space>
+                        <MenuOutlined style={{ cursor: 'grab', color: '#999' }} />
+                        <span>步骤 {index + 1}</span>
+                      </Space>
+                    }
+                    extra={
+                      <Space>
+                        {index > 0 && (
+                          <Button size="small" onClick={() => move(index, index - 1)}>上移</Button>
+                        )}
+                        {index < fields.length - 1 && (
+                          <Button size="small" onClick={() => move(index, index + 1)}>下移</Button>
+                        )}
+                        <Button
+                          size="small"
+                          danger
+                          icon={<MinusCircleOutlined />}
+                          onClick={() => remove(name)}
+                        >
+                          删除
+                        </Button>
+                      </Space>
+                    }
+                  >
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'title']}
+                      label="标题（中文）"
+                      rules={[{ required: true, message: '请输入步骤标题' }]}
+                    >
+                      <Input placeholder="如：关注频道" />
+                    </Form.Item>
+
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'titleEn']}
+                      label="标题（英文）"
+                    >
+                      <Input placeholder="如：Follow Channel" />
+                    </Form.Item>
+
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'desc']}
+                      label="描述（中文）"
+                    >
+                      <TextArea rows={2} placeholder="详细说明该步骤..." />
+                    </Form.Item>
+
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'descEn']}
+                      label="描述（英文）"
+                    >
+                      <TextArea rows={2} placeholder="Step description in English..." />
+                    </Form.Item>
+
+                    <Space style={{ width: '100%' }} size="large">
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'image']}
+                        label="图片 URL"
+                        style={{ flex: 1 }}
+                      >
+                        <Input placeholder="https://... 或上传后粘贴链接" />
+                      </Form.Item>
+
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'video']}
+                        label="视频 URL"
+                        style={{ flex: 1 }}
+                      >
+                        <Input placeholder="https://... 或上传后粘贴链接" />
+                      </Form.Item>
+                    </Space>
+                  </Card>
+                ))}
+                <Button
+                  type="dashed"
+                  onClick={() => add({ title: '', titleEn: '', desc: '', descEn: '', image: null, video: null })}
+                  block
+                  icon={<PlusOutlined />}
+                >
+                  添加步骤
+                </Button>
+              </>
+            )}
+          </Form.List>
         </Form>
       </Modal>
     </div>

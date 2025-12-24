@@ -82,7 +82,7 @@ export function WalletCard({ wallet, onWithdraw, t }) {
     },
     subtitle: {
       fontSize: 12,
-      color: 'rgba(255,255,255,0.5)',
+      color: 'rgba(255,255,255,0.7)',
       margin: 0,
       marginTop: 4,
       fontFamily: "'Rajdhani', sans-serif",
@@ -132,7 +132,7 @@ export function WalletCard({ wallet, onWithdraw, t }) {
     },
     balanceSubtext: {
       fontSize: 14,
-      color: 'rgba(255,255,255,0.4)',
+      color: 'rgba(255,255,255,0.6)',
       marginTop: 8,
       fontFamily: "'Rajdhani', sans-serif",
       letterSpacing: 1,
@@ -175,7 +175,7 @@ export function WalletCard({ wallet, onWithdraw, t }) {
     },
     note: {
       fontSize: 12,
-      color: 'rgba(255,255,255,0.4)',
+      color: 'rgba(255,255,255,0.6)',
       margin: 0,
       textAlign: 'center',
       display: 'flex',

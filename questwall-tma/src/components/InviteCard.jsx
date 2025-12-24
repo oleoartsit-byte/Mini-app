@@ -91,7 +91,7 @@ export function InviteCard({ inviteData, onCopyLink, onShare, t }) {
     },
     arrow: {
       fontSize: 10,
-      color: expanded ? '#bf5fff' : 'rgba(255,255,255,0.4)',
+      color: expanded ? '#bf5fff' : 'rgba(255,255,255,0.6)',
       transition: 'transform 0.3s ease',
       transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
     },
@@ -125,7 +125,7 @@ export function InviteCard({ inviteData, onCopyLink, onShare, t }) {
     },
     statLabel: {
       fontSize: 9,
-      color: 'rgba(255,255,255,0.4)',
+      color: 'rgba(255,255,255,0.6)',
       margin: 0,
       marginTop: 4,
       textTransform: 'uppercase',
@@ -206,9 +206,9 @@ export function InviteCard({ inviteData, onCopyLink, onShare, t }) {
           <div style={styles.textContainer}>
             <p style={styles.title}>{t ? t('invite.title') : 'INVITE FRIENDS'}</p>
             <p style={styles.subtitle}>
-              {inviteCount} {t ? t('invite.people') : 'invited'} · <IconDollar size={12} color="#39ff14" />{inviteBonus} · <IconDollar size={12} color="#ffc107" />{commissionBonus.toFixed(2)}
+              {inviteCount}{t ? t('invite.people') : '人'} · <IconDollar size={12} color="#39ff14" style={{ marginRight: 2 }} /> {inviteBonus} · <IconDollar size={12} color="#ffc107" style={{ marginRight: 2 }} /> {commissionBonus.toFixed(2)}
             </p>
-            <p style={styles.reward}>+{inviterReward} USDT <IconDollar size={12} color="#39ff14" /></p>
+            <p style={styles.reward}>+{inviterReward} USDT <IconDollar size={12} color="#39ff14" style={{ marginLeft: 4 }} /></p>
           </div>
         </div>
         <div style={styles.arrowWrapper}>

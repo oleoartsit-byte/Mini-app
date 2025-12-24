@@ -148,7 +148,7 @@ export function TransactionHistory({ api, t }) {
     time: {
       fontSize: 11,
       fontFamily: "'Roboto Mono', monospace",
-      color: 'rgba(255, 255, 255, 0.4)',
+      color: 'rgba(255, 255, 255, 0.6)',
     },
     amount: {
       display: 'flex',
@@ -178,13 +178,13 @@ export function TransactionHistory({ api, t }) {
     emptyText: {
       fontSize: 14,
       fontFamily: "'Rajdhani', sans-serif",
-      color: 'rgba(255, 255, 255, 0.4)',
+      color: 'rgba(255, 255, 255, 0.6)',
       margin: 0,
     },
     loadingText: {
       padding: 30,
       textAlign: 'center',
-      color: 'rgba(255, 255, 255, 0.4)',
+      color: 'rgba(255, 255, 255, 0.6)',
       fontFamily: "'Rajdhani', sans-serif",
       fontSize: 14,
     },

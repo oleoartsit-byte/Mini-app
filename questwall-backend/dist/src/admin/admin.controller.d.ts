@@ -63,6 +63,7 @@ export declare class AdminController {
             targetUrl: string;
             channelId: string;
             targetCountries: string[];
+            stepDetails: import("@prisma/client/runtime/library").JsonValue;
             owner: string;
             actionCount: number;
             createdAt: Date;
@@ -90,6 +91,7 @@ export declare class AdminController {
         targetUrl: string;
         channelId: string;
         targetCountries: string[];
+        stepDetails: import("@prisma/client/runtime/library").JsonValue;
         owner: string;
         actionCount: number;
         rewardCount: number;

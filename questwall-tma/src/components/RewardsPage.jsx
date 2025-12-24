@@ -280,14 +280,14 @@ export function RewardsPage({ wallet, t, onWithdraw, api }) {
       borderBottom: '1px solid rgba(0, 229, 255, 0.1)',
     },
     historyIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      background: 'linear-gradient(135deg, #26A17B 0%, #3CB371 100%)',
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      background: 'rgba(57, 255, 20, 0.12)',
+      border: '1px solid rgba(57, 255, 20, 0.25)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: 18,
     },
     historyContent: {
       flex: 1,
@@ -402,7 +402,7 @@ export function RewardsPage({ wallet, t, onWithdraw, api }) {
                 borderBottom: index === rewardHistory.length - 1 ? 'none' : styles.historyItem.borderBottom,
               }}
             >
-              <div style={styles.historyIcon}><IconDollar size={20} color="#fff" /></div>
+              <div style={styles.historyIcon}><IconDollar size={18} color="#39ff14" /></div>
               <div style={styles.historyContent}>
                 <p style={styles.historySource}>{item.source}</p>
                 <p style={styles.historyTime}>{item.time}</p>

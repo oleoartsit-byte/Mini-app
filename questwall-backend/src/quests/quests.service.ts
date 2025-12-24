@@ -108,6 +108,7 @@ export class QuestsService {
       status: quest.status,
       targetUrl: quest.targetUrl,
       channelId: quest.channelId,
+      stepDetails: quest.stepDetails,
       userStatus: quest.actions?.[0]?.status || null,
       createdAt: quest.createdAt
     }));
@@ -151,6 +152,7 @@ export class QuestsService {
       status: quest.status,
       targetUrl: quest.targetUrl,
       channelId: quest.channelId,
+      stepDetails: quest.stepDetails,
       owner: quest.owner?.username,
       createdAt: quest.createdAt
     };

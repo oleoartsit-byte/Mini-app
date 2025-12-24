@@ -10,16 +10,15 @@ export function TutorialPage({ api, t }) {
   const [searchQuery, setSearchQuery] = useState('');
 
   // 获取当前语言
-  const getLang = () => t?.('locale') === 'en' ? 'en' : 'zh';
+  const currentLang = t?.('locale') === 'en' ? 'en' : 'zh';
 
   // 从后端获取教程列表
   useEffect(() => {
     const fetchTutorials = async () => {
       setLoading(true);
       try {
-        const lang = getLang();
         if (api?.getTutorials) {
-          const data = await api.getTutorials(lang, selectedCategory);
+          const data = await api.getTutorials(currentLang, selectedCategory);
           setTutorials(data.items || []);
         } else {
           // 默认示例数据（后端API未实现时显示）
@@ -33,15 +32,14 @@ export function TutorialPage({ api, t }) {
       }
     };
     fetchTutorials();
-  }, [api, selectedCategory]);
+  }, [api, selectedCategory, currentLang]);
 
   // 获取分类
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const lang = getLang();
         if (api?.getTutorialCategories) {
-          const data = await api.getTutorialCategories(lang);
+          const data = await api.getTutorialCategories(currentLang);
           setCategories(data || []);
         } else {
           setCategories(getDefaultCategories());
@@ -51,7 +49,7 @@ export function TutorialPage({ api, t }) {
       }
     };
     fetchCategories();
-  }, [api]);
+  }, [api, currentLang]);
 
   // 默认示例数据
   const getDefaultTutorials = () => [
@@ -218,9 +216,11 @@ export function TutorialPage({ api, t }) {
       left: 14,
       top: '50%',
       transform: 'translateY(-50%)',
-      fontSize: 16,
-      color: 'rgba(255, 255, 255, 0.4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       pointerEvents: 'none',
+      zIndex: 1,
     },
     clearButton: {
       position: 'absolute',
@@ -664,7 +664,7 @@ export function TutorialPage({ api, t }) {
       {/* 搜索框 */}
       <div style={styles.searchContainer}>
         <div style={styles.searchWrapper}>
-          <span style={styles.searchIcon}><IconSearch size={16} color="rgba(255, 255, 255, 0.4)" /></span>
+          <span style={styles.searchIcon}><IconSearch size={16} color="rgba(255, 255, 255, 0.6)" /></span>
           <input
             type="text"
             style={styles.searchInput}

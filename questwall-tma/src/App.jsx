@@ -575,7 +575,7 @@ export function App() {
     fontSize: 12,
     fontWeight: '700',
     fontFamily: "'Orbitron', sans-serif",
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(255, 255, 255, 0.85)',
     textTransform: 'uppercase',
     letterSpacing: '1px',
     display: 'flex',
@@ -602,7 +602,7 @@ export function App() {
   const pageSubtitleStyle = {
     fontSize: 13,
     fontFamily: "'Rajdhani', sans-serif",
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(255, 255, 255, 0.7)',
     margin: 0,
   };
 

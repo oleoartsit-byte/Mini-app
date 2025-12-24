@@ -182,7 +182,7 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, t }) {
     },
     makeupCost: {
       fontSize: 11,
-      color: 'rgba(255,255,255,0.4)',
+      color: 'rgba(255,255,255,0.6)',
       fontFamily: "'Rajdhani', sans-serif",
     },
     daysGrid: {
@@ -205,7 +205,7 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, t }) {
     dayWeek: {
       fontSize: 9,
       marginBottom: 3,
-      color: 'rgba(255,255,255,0.4)',
+      color: 'rgba(255,255,255,0.6)',
       fontFamily: "'Rajdhani', sans-serif",
     },
     dayNum: {

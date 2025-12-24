@@ -59,6 +59,7 @@ model Quest {
   targetUrl     String?   @map("target_url")
   channelId     String?   @map("channel_id")
   targetCountries String[]  @default([]) @map("target_countries") // 目标国家列表，空数组表示全球
+  stepDetails   Json?     @map("step_details") // 任务步骤详情（支持图片、视频）
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 

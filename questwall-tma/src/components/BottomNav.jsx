@@ -57,7 +57,7 @@ export function BottomNav({ activeTab, onTabChange, t }) {
       fontSize: 9,
       fontWeight: '600',
       fontFamily: "'Rajdhani', sans-serif",
-      color: 'rgba(255,255,255,0.4)',
+      color: 'rgba(255,255,255,0.6)',
       margin: 0,
       transition: 'all 0.3s ease',
       textTransform: 'uppercase',
@@ -101,7 +101,7 @@ export function BottomNav({ activeTab, onTabChange, t }) {
             }}>
               <IconComponent
                 size={22}
-                color={isActive ? '#00e5ff' : 'rgba(255, 255, 255, 0.4)'}
+                color={isActive ? '#00e5ff' : 'rgba(255, 255, 255, 0.6)'}
                 active={isActive}
               />
             </div>

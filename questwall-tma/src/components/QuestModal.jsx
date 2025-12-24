@@ -50,6 +50,7 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
   const [proofImage, setProofImage] = useState(null);
   const [proofImagePreview, setProofImagePreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [expandedStepDetail, setExpandedStepDetail] = useState(false); // 步骤详情展开状态
 
   // 同步外部 Twitter 绑定状态
   useEffect(() => {
@@ -66,6 +67,7 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
       setShowTwitterBind(false);
       setProofImage(null);
       setProofImagePreview(null);
+      setExpandedStepDetail(false);
     }
   }, [quest?.id]);
 
@@ -494,34 +496,129 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 10,
-      marginBottom: 20,
-      padding: '14px 18px',
-      background: 'rgba(30, 30, 55, 0.8)',
-      borderRadius: 14,
-      border: '1px solid rgba(0, 229, 255, 0.15)',
+      gap: 6,
+      marginBottom: expandedStepDetail ? 0 : 16,
+      padding: '12px 16px',
+      background: 'rgba(20, 20, 40, 0.6)',
+      borderRadius: expandedStepDetail ? '12px 12px 0 0' : 12,
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
     },
     stepItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
       fontSize: 12,
-      fontFamily: "'Orbitron', sans-serif",
-      color: 'rgba(255, 255, 255, 0.6)',
+      fontFamily: "'Rajdhani', sans-serif",
+      fontWeight: '600',
+      color: 'rgba(255, 255, 255, 0.4)',
+      whiteSpace: 'nowrap',
     },
     stepItemActive: {
       color: '#00e5ff',
       fontWeight: '700',
-      textShadow: '0 0 8px rgba(0, 229, 255, 0.6)',
     },
     stepItemDone: {
       color: '#39ff14',
-      textShadow: '0 0 8px rgba(57, 255, 20, 0.6)',
     },
     stepArrow: {
+      fontSize: 10,
+      color: 'rgba(255, 255, 255, 0.3)',
+      margin: '0 4px',
+    },
+    // 步骤详情展开区域
+    stepDetailContainer: {
+      maxHeight: expandedStepDetail ? '280px' : '0',
+      opacity: expandedStepDetail ? 1 : 0,
+      overflow: 'hidden',
+      transition: 'all 0.3s ease',
+      background: 'rgba(15, 15, 35, 0.8)',
+      borderRadius: '0 0 12px 12px',
+      border: expandedStepDetail ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+      borderTop: 'none',
+      marginBottom: expandedStepDetail ? 16 : 0,
+    },
+    stepDetailContent: {
+      padding: '14px 16px',
+      maxHeight: '250px',
+      overflowY: 'auto',
+    },
+    stepDetailItem: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 12,
+      marginBottom: 14,
+    },
+    stepDetailNumber: {
+      width: 22,
+      height: 22,
+      borderRadius: '50%',
+      background: 'rgba(60, 60, 80, 0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 11,
+      fontWeight: '700',
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.6)',
+      flexShrink: 0,
+      marginTop: 1,
+    },
+    stepDetailNumberActive: {
+      background: 'linear-gradient(135deg, #00e5ff, #bf5fff)',
+      color: '#000',
+    },
+    stepDetailNumberDone: {
+      background: '#39ff14',
+      color: '#000',
+    },
+    stepDetailTextWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    stepDetailTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      fontFamily: "'Rajdhani', sans-serif",
+      color: '#fff',
+      margin: 0,
+      marginBottom: 4,
+    },
+    stepDetailDesc: {
       fontSize: 12,
-      color: '#00e5ff',
-      opacity: 0.5,
+      fontFamily: "'Rajdhani', sans-serif",
+      color: 'rgba(255, 255, 255, 0.5)',
+      margin: 0,
+      lineHeight: 1.5,
+    },
+    stepDetailMedia: {
+      marginTop: 10,
+      borderRadius: 8,
+      overflow: 'hidden',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+    },
+    stepDetailImage: {
+      width: '100%',
+      maxHeight: 120,
+      objectFit: 'cover',
+      display: 'block',
+    },
+    stepDetailVideo: {
+      width: '100%',
+      maxHeight: 150,
+      background: '#000',
+    },
+    expandToggle: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4,
+      fontSize: 11,
+      color: 'rgba(255, 255, 255, 0.4)',
+      marginLeft: 8,
+      transition: 'all 0.3s ease',
+    },
+    expandArrow: {
+      fontSize: 8,
+      transition: 'transform 0.3s ease',
+      transform: expandedStepDetail ? 'rotate(180deg)' : 'rotate(0deg)',
     },
     secondaryBg: {
       background: 'rgba(0, 0, 0, 0.3)',
@@ -532,48 +629,152 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
     },
   };
 
+  // 获取任务的详细步骤说明（可从后端返回，这里先预留默认值）
+  const getStepDetails = () => {
+    // 优先使用后端返回的步骤详情 quest.stepDetails
+    if (quest.stepDetails && quest.stepDetails.length > 0) {
+      return quest.stepDetails;
+    }
+
+    // 默认步骤详情（根据任务类型生成，支持多语言）
+    const isEn = t?.('locale') === 'en';
+
+    switch (quest.type) {
+      case 'join_channel':
+        return [
+          { title: isEn ? 'Follow Channel' : '关注频道', desc: isEn ? 'Click the button to go to Telegram channel page, tap "Join" to follow' : '点击按钮跳转到 Telegram 频道页面，点击「加入」按钮关注频道', image: null, video: null },
+          { title: isEn ? 'Return & Verify' : '返回验证', desc: isEn ? 'After following, return here and click verify button' : '关注成功后返回此页面，点击验证按钮', image: null, video: null },
+          { title: isEn ? 'Get Reward' : '获得奖励', desc: isEn ? 'Reward will be sent to your account after verification' : '验证通过后奖励将自动发放到您的账户', image: null, video: null },
+        ];
+      case 'join_group':
+        return [
+          { title: isEn ? 'Join Group' : '加入群组', desc: isEn ? 'Click the button to go to Telegram group page, tap "Join" to enter' : '点击按钮跳转到 Telegram 群组页面，点击「加入」按钮加入群组', image: null, video: null },
+          { title: isEn ? 'Return & Verify' : '返回验证', desc: isEn ? 'After joining, return here and click verify button' : '加入成功后返回此页面，点击验证按钮', image: null, video: null },
+          { title: isEn ? 'Get Reward' : '获得奖励', desc: isEn ? 'Reward will be sent to your account after verification' : '验证通过后奖励将自动发放到您的账户', image: null, video: null },
+        ];
+      case 'follow_twitter':
+        return [
+          { title: isEn ? 'Follow Account' : '关注账号', desc: isEn ? 'Click the button to go to Twitter page, tap "Follow" button' : '点击按钮跳转到 Twitter 页面，点击「Follow」按钮关注指定账号', image: null, video: null },
+          { title: isEn ? 'Return & Verify' : '返回验证', desc: isEn ? 'After following, return here for automatic verification' : '关注成功后返回此页面，系统将自动验证您的关注状态', image: null, video: null },
+          { title: isEn ? 'Get Reward' : '获得奖励', desc: isEn ? 'Reward will be sent to your account after verification' : '验证通过后奖励将自动发放到您的账户', image: null, video: null },
+        ];
+      case 'retweet_twitter':
+        return [
+          { title: isEn ? 'Retweet' : '转发推文', desc: isEn ? 'Click the button to go to the tweet, tap retweet button (arrow icon)' : '点击按钮跳转到指定推文，点击转发按钮（带箭头图标）完成转发', image: null, video: null },
+          { title: isEn ? 'Return & Verify' : '返回验证', desc: isEn ? 'After retweeting, return here for automatic verification' : '转发成功后返回此页面，系统将自动验证您的转发记录', image: null, video: null },
+          { title: isEn ? 'Get Reward' : '获得奖励', desc: isEn ? 'Reward will be sent to your account after verification' : '验证通过后奖励将自动发放到您的账户', image: null, video: null },
+        ];
+      case 'like_twitter':
+        return [
+          { title: isEn ? 'Like Tweet' : '点赞推文', desc: isEn ? 'Click the button to go to the tweet, tap heart icon to like' : '点击按钮跳转到指定推文，点击心形图标完成点赞', image: null, video: null },
+          { title: isEn ? 'Upload Screenshot' : '上传截图', desc: isEn ? 'Take a screenshot showing the liked status with your account info' : '截取显示已点赞状态的截图，需包含您的登录账号信息', image: null, video: null },
+          { title: isEn ? 'Wait for Review' : '等待审核', desc: isEn ? 'After submitting, wait for manual review. Reward will be sent after approval' : '提交截图后等待人工审核，审核通过后奖励将自动发放', image: null, video: null },
+        ];
+      case 'comment_twitter':
+        return [
+          { title: isEn ? 'Comment Tweet' : '评论推文', desc: isEn ? 'Click the button to go to the tweet, leave your comment' : '点击按钮跳转到指定推文，在评论区发表您的评论', image: null, video: null },
+          { title: isEn ? 'Return & Verify' : '返回验证', desc: isEn ? 'After commenting, return here for automatic verification' : '评论成功后返回此页面，系统将自动验证您的评论记录', image: null, video: null },
+          { title: isEn ? 'Get Reward' : '获得奖励', desc: isEn ? 'Reward will be sent to your account after verification' : '验证通过后奖励将自动发放到您的账户', image: null, video: null },
+        ];
+      default:
+        return [
+          { title: isEn ? 'Complete Task' : '执行任务', desc: isEn ? 'Follow the task requirements to complete' : '按照任务要求完成相应操作', image: null, video: null },
+          { title: isEn ? 'Verify' : '验证完成', desc: isEn ? 'Click verify button after completion' : '完成后点击验证按钮', image: null, video: null },
+          { title: isEn ? 'Get Reward' : '获得奖励', desc: isEn ? 'Get reward after verification' : '验证通过后获得奖励', image: null, video: null },
+        ];
+    }
+  };
+
   // 渲染步骤指示器
   const renderSteps = () => {
     if (!needsVerification) return null;
 
-    const getStepLabel = () => {
-      switch (quest.type) {
-        case 'join_channel': return '关注';
-        case 'join_group': return '加入';
-        case 'follow_twitter': return '关注';
-        case 'retweet_twitter': return '转发';
-        case 'like_twitter': return '点赞';
-        case 'comment_twitter': return '评论';
-        default: return '完成';
-      }
-    };
-
-    const steps = [
-      { key: 'go', label: getStepLabel() },
-      { key: 'verify', label: '验证' },
-      { key: 'done', label: '完成' },
-    ];
+    const stepDetails = getStepDetails();
+    const hasDetailContent = stepDetails.some(s => s.desc || s.image || s.video);
 
     const currentStepIndex =
       step === 'intro' ? 0 :
-      step === 'ready_verify' || step === 'verifying' || step === 'error' ? 1 :
-      step === 'success' ? 2 : 0;
+      step === 'ready_verify' || step === 'verifying' || step === 'error' || step === 'upload_proof' ? 1 :
+      step === 'success' || step === 'pending_review' ? 2 : 0;
 
     return (
-      <div style={styles.stepsContainer}>
-        {steps.map((s, idx) => (
-          <span key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {idx > 0 && <span style={styles.stepArrow}>→</span>}
-            <span style={{
-              ...styles.stepItem,
-              ...(idx === currentStepIndex ? styles.stepItemActive : {}),
-              ...(idx < currentStepIndex ? styles.stepItemDone : {}),
-            }}>
-              {idx < currentStepIndex ? '✓' : `${idx + 1}.`} {s.label}
+      <>
+        {/* 步骤指示器（可点击展开详情） */}
+        <div
+          style={styles.stepsContainer}
+          onClick={() => hasDetailContent && setExpandedStepDetail(!expandedStepDetail)}
+        >
+          {stepDetails.map((s, idx) => (
+            <span key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {idx > 0 && <span style={styles.stepArrow}>→</span>}
+              <span style={{
+                ...styles.stepItem,
+                ...(idx === currentStepIndex ? styles.stepItemActive : {}),
+                ...(idx < currentStepIndex ? styles.stepItemDone : {}),
+              }}>
+                {idx < currentStepIndex ? '✓' : `${idx + 1}.`} {s.title}
+              </span>
             </span>
-          </span>
-        ))}
-      </div>
+          ))}
+          {/* 展开/收起按钮 */}
+          {hasDetailContent && (
+            <span style={styles.expandToggle}>
+              <span>{expandedStepDetail ? (t?.('locale') === 'en' ? 'Hide' : '收起') : (t?.('locale') === 'en' ? 'Details' : '详情')}</span>
+              <span style={styles.expandArrow}>▼</span>
+            </span>
+          )}
+        </div>
+
+        {/* 步骤详情展开区域 */}
+        <div style={styles.stepDetailContainer}>
+          <div style={styles.stepDetailContent}>
+            {stepDetails.map((s, idx) => (
+              <div key={idx} style={{
+                ...styles.stepDetailItem,
+                marginBottom: idx === stepDetails.length - 1 ? 0 : 14,
+              }}>
+                {/* 步骤序号 */}
+                <span style={{
+                  ...styles.stepDetailNumber,
+                  ...(idx < currentStepIndex ? styles.stepDetailNumberDone : {}),
+                  ...(idx === currentStepIndex ? styles.stepDetailNumberActive : {}),
+                }}>
+                  {idx < currentStepIndex ? '✓' : idx + 1}
+                </span>
+                {/* 步骤内容 */}
+                <div style={styles.stepDetailTextWrap}>
+                  <p style={{
+                    ...styles.stepDetailTitle,
+                    color: idx < currentStepIndex ? '#39ff14' : idx === currentStepIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+                  }}>
+                    {s.title}
+                  </p>
+                  {s.desc && (
+                    <p style={styles.stepDetailDesc}>{s.desc}</p>
+                  )}
+                  {/* 步骤图片 */}
+                  {s.image && (
+                    <div style={styles.stepDetailMedia}>
+                      <img src={s.image} alt={s.title} style={styles.stepDetailImage} />
+                    </div>
+                  )}
+                  {/* 步骤视频 */}
+                  {s.video && (
+                    <div style={styles.stepDetailMedia}>
+                      <video
+                        src={s.video}
+                        controls
+                        style={styles.stepDetailVideo}
+                        preload="metadata"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
     );
   };
 

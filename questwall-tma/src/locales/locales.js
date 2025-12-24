@@ -2,6 +2,9 @@
 
 export const locales = {
   zh: {
+    // 语言标识
+    locale: 'zh',
+
     // 通用
     common: {
       confirm: '确认',
@@ -39,6 +42,7 @@ export const locales = {
     tutorials: {
       title: '官方教程',
       subtitle: '学习如何完成各类任务',
+      searchPlaceholder: '搜索教程...',
       empty: '暂无教程',
       watchVideo: '观看视频',
       images: '张图片',
@@ -376,6 +380,9 @@ export const locales = {
   },
 
   en: {
+    // Locale identifier
+    locale: 'en',
+
     // Common
     common: {
       confirm: 'Confirm',
@@ -413,6 +420,7 @@ export const locales = {
     tutorials: {
       title: 'Official Guide',
       subtitle: 'Learn how to complete various tasks',
+      searchPlaceholder: 'Search tutorials...',
       empty: 'No tutorials yet',
       watchVideo: 'Watch Video',
       images: 'images',

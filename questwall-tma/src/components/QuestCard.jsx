@@ -220,7 +220,7 @@ export function QuestCard({ quest, onStart, isCompleted = false, t }) {
     rewardLabel: {
       fontSize: 9,
       fontWeight: '500',
-      color: 'rgba(255, 255, 255, 0.4)',
+      color: 'rgba(255, 255, 255, 0.6)',
       textTransform: 'uppercase',
     },
     button: {
@@ -241,7 +241,7 @@ export function QuestCard({ quest, onStart, isCompleted = false, t }) {
     },
     buttonDisabled: {
       background: 'rgba(60, 60, 80, 0.5)',
-      color: 'rgba(255, 255, 255, 0.4)',
+      color: 'rgba(255, 255, 255, 0.5)',
       boxShadow: 'none',
       cursor: 'default',
     },
@@ -250,7 +250,7 @@ export function QuestCard({ quest, onStart, isCompleted = false, t }) {
       alignItems: 'center',
       gap: 5,
       fontSize: 10,
-      color: 'rgba(255, 255, 255, 0.4)',
+      color: 'rgba(255, 255, 255, 0.6)',
       marginTop: 8,
       fontFamily: "'Rajdhani', sans-serif",
     },

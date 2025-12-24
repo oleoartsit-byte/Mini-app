@@ -22,6 +22,7 @@ export declare class QuestsController {
             status: import(".prisma/client").$Enums.QuestStatus;
             targetUrl: string;
             channelId: string;
+            stepDetails: import("@prisma/client/runtime/library").JsonValue;
             userStatus: import(".prisma/client").$Enums.ActionStatus;
             createdAt: Date;
         }[];
@@ -61,6 +62,7 @@ export declare class QuestsController {
         status: import(".prisma/client").$Enums.QuestStatus;
         targetUrl: string;
         channelId: string;
+        stepDetails: import("@prisma/client/runtime/library").JsonValue;
         owner: string;
         createdAt: Date;
     }>;

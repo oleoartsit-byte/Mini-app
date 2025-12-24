@@ -147,6 +147,7 @@ let AdminService = class AdminService {
                 targetUrl: q.targetUrl,
                 channelId: q.channelId,
                 targetCountries: q.targetCountries,
+                stepDetails: q.stepDetails,
                 owner: q.owner?.username,
                 actionCount: q._count.actions,
                 createdAt: q.createdAt,
@@ -188,6 +189,7 @@ let AdminService = class AdminService {
             targetUrl: quest.targetUrl,
             channelId: quest.channelId,
             targetCountries: quest.targetCountries,
+            stepDetails: quest.stepDetails,
             owner: quest.owner?.username,
             actionCount: quest._count.actions,
             rewardCount: quest._count.rewards,
@@ -225,6 +227,7 @@ let AdminService = class AdminService {
                 targetUrl: data.targetUrl,
                 channelId: data.channelId,
                 targetCountries: data.targetCountries || [],
+                stepDetails: data.stepDetails || null,
                 status: client_1.QuestStatus.DRAFT,
             },
         });
@@ -257,6 +260,8 @@ let AdminService = class AdminService {
             updateData.limits = data.limits;
         if (data.targetCountries !== undefined)
             updateData.targetCountries = data.targetCountries;
+        if (data.stepDetails !== undefined)
+            updateData.stepDetails = data.stepDetails;
         if (data.reward?.type !== undefined)
             updateData.rewardType = data.reward.type;
         if (data.reward?.amount !== undefined)

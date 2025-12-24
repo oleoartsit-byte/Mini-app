@@ -49,10 +49,10 @@ export function App() {
   const theme = useTheme(tg);
   const { locale, setLocale, t, locales: supportedLocales } = useLocale();
 
-  // 更新 body 背景色跟随主题
-  useEffect(() => {
-    document.body.style.backgroundColor = theme.secondaryBg;
-  }, [theme.secondaryBg]);
+  // 不覆盖 body 背景色，使用 globalStyles.js 中的渐变背景
+  // useEffect(() => {
+  //   document.body.style.backgroundColor = theme.secondaryBg;
+  // }, [theme.secondaryBg]);
 
   // 计算页面切换动画方向
   const getTransitionType = () => {
@@ -855,6 +855,8 @@ export function App() {
         <div className="orb orb-4" />
         <div className="orb orb-5" />
         <div className="orb orb-6" />
+        <div className="orb orb-7" />
+        <div className="orb orb-8" />
       </div>
 
       {/* 12颗闪烁星星 */}

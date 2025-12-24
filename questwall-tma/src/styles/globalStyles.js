@@ -34,7 +34,15 @@ export const globalStyles = `
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Rajdhani', sans-serif;
-    background: linear-gradient(180deg, #14142a 0%, #1a1a35 50%, #18182f 100%);
+    background: linear-gradient(165deg,
+      #0a0a18 0%,
+      #0f0f25 15%,
+      #151535 30%,
+      #1a1a40 50%,
+      #12122a 70%,
+      #0d0d1f 85%,
+      #080815 100%
+    );
     color: #fff;
     padding-bottom: env(safe-area-inset-bottom);
     min-height: 100vh;
@@ -72,72 +80,92 @@ export const globalStyles = `
     overflow: hidden;
   }
 
-  /* 大面积背景光晕 - 模拟设计稿效果 */
+  /* 大面积背景光晕 - 丰富多彩效果 */
   .orb {
     position: absolute;
     border-radius: 50%;
-    filter: blur(120px);
+    filter: blur(60px);
     opacity: 1;
   }
 
-  /* 顶部左侧 - 青蓝色大光晕 - 更亮 */
+  /* 顶部左侧 - 亮青色 */
   .orb-1 {
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(0, 200, 255, 0.6) 0%, rgba(100, 120, 255, 0.4) 40%, transparent 70%);
-    top: -15%;
-    left: -20%;
-    animation: float1 20s ease-in-out infinite;
-  }
-
-  /* 顶部右侧 - 紫色光晕 - 更亮 */
-  .orb-2 {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(160, 100, 220, 0.6) 0%, rgba(120, 60, 200, 0.4) 40%, transparent 70%);
-    top: -10%;
-    right: -15%;
-    animation: float2 25s ease-in-out infinite;
-  }
-
-  /* 中部 - 蓝紫过渡 - 更亮 */
-  .orb-3 {
-    width: 700px;
+    width: 400px;
     height: 400px;
-    background: radial-gradient(ellipse, rgba(80, 80, 180, 0.5) 0%, rgba(100, 60, 150, 0.3) 50%, transparent 70%);
-    top: 30%;
+    background: radial-gradient(circle, rgba(0, 255, 255, 0.8) 0%, rgba(0, 200, 255, 0.5) 40%, transparent 70%);
+    top: -5%;
     left: -10%;
-    animation: float3 30s ease-in-out infinite;
+    animation: float1 18s ease-in-out infinite;
   }
 
-  /* 底部右侧 - 粉紫色大光晕 - 更亮 */
+  /* 顶部右侧 - 亮紫粉色 */
+  .orb-2 {
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(255, 0, 255, 0.75) 0%, rgba(200, 50, 255, 0.5) 40%, transparent 70%);
+    top: 5%;
+    right: -15%;
+    animation: float2 22s ease-in-out infinite;
+  }
+
+  /* 中部左侧 - 蓝紫色 */
+  .orb-3 {
+    width: 500px;
+    height: 350px;
+    background: radial-gradient(ellipse, rgba(100, 50, 255, 0.7) 0%, rgba(80, 80, 200, 0.45) 40%, transparent 70%);
+    top: 25%;
+    left: -20%;
+    animation: float3 25s ease-in-out infinite;
+  }
+
+  /* 中部右侧 - 橙粉色 */
   .orb-4 {
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(220, 120, 200, 0.55) 0%, rgba(180, 100, 180, 0.35) 40%, transparent 70%);
-    bottom: -10%;
-    right: -20%;
-    animation: float4 22s ease-in-out infinite;
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, rgba(255, 100, 150, 0.7) 0%, rgba(255, 80, 120, 0.45) 40%, transparent 70%);
+    top: 35%;
+    right: -10%;
+    animation: float4 20s ease-in-out infinite;
   }
 
-  /* 底部左侧 - 淡蓝色 - 更亮 */
+  /* 底部左侧 - 深蓝色 */
   .orb-5 {
     width: 450px;
     height: 450px;
-    background: radial-gradient(circle, rgba(100, 150, 220, 0.45) 0%, rgba(80, 100, 180, 0.3) 40%, transparent 70%);
-    bottom: 10%;
+    background: radial-gradient(circle, rgba(50, 100, 255, 0.7) 0%, rgba(80, 80, 200, 0.45) 40%, transparent 70%);
+    bottom: 15%;
     left: -15%;
     animation: float5 28s ease-in-out infinite;
   }
 
-  /* 中下部 - 补充紫色 - 更亮 */
+  /* 底部右侧 - 品红/粉紫色 */
   .orb-6 {
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(140, 80, 200, 0.4) 0%, rgba(120, 60, 180, 0.25) 40%, transparent 70%);
-    bottom: 25%;
-    right: 10%;
-    animation: float1 35s ease-in-out infinite reverse;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(255, 50, 200, 0.75) 0%, rgba(200, 50, 180, 0.5) 40%, transparent 70%);
+    bottom: -5%;
+    right: -20%;
+    animation: float1 30s ease-in-out infinite reverse;
+  }
+
+  /* 额外光球 - 中间黄橙色点缀 */
+  .orb-7 {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255, 180, 50, 0.5) 0%, rgba(255, 150, 0, 0.3) 40%, transparent 70%);
+    top: 50%;
+    left: 30%;
+    animation: float2 24s ease-in-out infinite;
+  }
+
+  /* 额外光球 - 顶部中间绿青色 */
+  .orb-8 {
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(0, 255, 180, 0.55) 0%, rgba(0, 200, 150, 0.35) 40%, transparent 70%);
+    top: 10%;
+    left: 40%;
+    animation: float3 26s ease-in-out infinite reverse;
   }
 
   @keyframes float1 {

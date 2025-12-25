@@ -210,6 +210,34 @@ export const riskApi = {
   getUserHistory: (userId) => request(`/admin/risk/user/${userId}`),
 };
 
+// 截图审核管理
+export const reviewApi = {
+  // 获取待审核列表
+  getList: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/admin/reviews?${query}`);
+  },
+
+  // 获取审核统计
+  getStats: () => request('/admin/reviews/stats'),
+
+  // 获取审核详情
+  getDetail: (id) => request(`/admin/reviews/${id}`),
+
+  // 审核通过
+  approve: (id) =>
+    request(`/admin/reviews/${id}/approve`, {
+      method: 'POST',
+    }),
+
+  // 审核拒绝
+  reject: (id, reason) =>
+    request(`/admin/reviews/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+};
+
 // 教程管理
 export const tutorialApi = {
   // 获取教程列表
@@ -260,4 +288,5 @@ export default {
   risk: riskApi,
   upload: uploadApi,
   tutorial: tutorialApi,
+  review: reviewApi,
 };

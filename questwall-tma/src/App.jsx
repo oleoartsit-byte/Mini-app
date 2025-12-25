@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useTelegram, useTheme, useLocale } from './hooks';
 import { createApiService } from './services/api';
 import {
@@ -143,8 +143,8 @@ export function App() {
     localStorage.setItem('questwall_completed', JSON.stringify(completedQuests));
   }, [completedQuests]);
 
-  // API 服务（必须在使用它的 useEffect 之前定义）
-  const api = createApiService(authToken);
+  // API 服务（当 authToken 变化时重新创建，确保 headers 包含最新 token）
+  const api = useMemo(() => createApiService(authToken), [authToken]);
 
   // 从后端获取签到状态
   useEffect(() => {

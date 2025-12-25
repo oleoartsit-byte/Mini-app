@@ -58,6 +58,8 @@ export function createApiService(token) {
             // 任务验证相关字段
             channelId: q.channelId || null,
             targetUrl: q.targetUrl || null,
+            // 用户任务状态（CLAIMED, SUBMITTED, REWARDED 等）
+            userStatus: q.userStatus || null,
           })),
           total: data.total
         };
@@ -82,11 +84,16 @@ export function createApiService(token) {
     },
 
     // 提交任务证明
-    submitQuest: async (questId, proof, proofImage = null) => {
+    submitQuest: async (questId, proof, proofImages = null) => {
       try {
         const body = { proof };
-        if (proofImage) {
-          body.proofImage = proofImage;
+        if (proofImages) {
+          // 支持单个图片URL或图片URL数组
+          if (Array.isArray(proofImages)) {
+            body.proofImages = proofImages;
+          } else {
+            body.proofImage = proofImages;
+          }
         }
         const response = await fetch(`${API_BASE}/quests/${questId}/submit`, {
           method: 'POST',

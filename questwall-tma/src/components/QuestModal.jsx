@@ -47,9 +47,9 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
   const [showTwitterBind, setShowTwitterBind] = useState(false);
   const [localTwitterBound, setLocalTwitterBound] = useState(twitterBound);
   const [localTwitterUsername, setLocalTwitterUsername] = useState(twitterUsername);
-  const [proofImage, setProofImage] = useState(null);
-  const [proofImagePreview, setProofImagePreview] = useState(null);
+  const [proofImages, setProofImages] = useState([]); // 支持多张图片 [{url, preview}]
   const [isUploading, setIsUploading] = useState(false);
+  const [tweetLink, setTweetLink] = useState(''); // 推文链接
   const [expandedStepDetail, setExpandedStepDetail] = useState(false); // 步骤详情展开状态
 
   // 同步外部 Twitter 绑定状态
@@ -58,54 +58,89 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
     setLocalTwitterUsername(twitterUsername);
   }, [twitterBound, twitterUsername]);
 
-  // 当任务改变时重置弹窗状态
+  // 当任务改变时重置弹窗状态，并根据 userStatus 设置初始步骤
   useEffect(() => {
     if (quest) {
-      setStep('intro');
-      setVerifyMessage('');
+      // 根据任务的用户状态设置初始步骤
+      if (quest.userStatus === 'SUBMITTED') {
+        // 任务已提交，等待审核
+        setStep('pending_review');
+        setVerifyMessage('您的截图已提交，等待管理员审核');
+      } else if (quest.userStatus === 'REWARDED') {
+        // 任务已完成
+        setStep('success');
+        setVerifyMessage('任务已完成，奖励已发放');
+      } else if (quest.userStatus === 'REJECTED') {
+        // 任务被拒绝，显示拒绝状态（可重新提交）
+        setStep('rejected');
+        setVerifyMessage('您的截图未通过审核，请重新提交');
+      } else {
+        // 其他状态（未领取、已领取）显示正常流程
+        setStep('intro');
+        setVerifyMessage('');
+      }
       setIsLoading(false);
       setShowTwitterBind(false);
-      setProofImage(null);
-      setProofImagePreview(null);
+      setProofImages([]);
+      setTweetLink('');
       setExpandedStepDetail(false);
     }
-  }, [quest?.id]);
+  }, [quest?.id, quest?.userStatus]);
 
   // 检查是否是需要截图的任务类型
   const isProofImageQuest = (type) => {
     return type === 'like_twitter';
   };
 
-  // 处理图片选择
+  // 最大图片数量
+  const MAX_IMAGES = 3;
+
+  // 处理图片选择（支持多张）
   const handleImageSelect = useCallback(async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // 预览图片
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setProofImagePreview(e.target.result);
-    };
-    reader.readAsDataURL(file);
+    // 检查数量限制
+    const remainingSlots = MAX_IMAGES - proofImages.length;
+    if (remainingSlots <= 0) {
+      setVerifyMessage(`最多只能上传 ${MAX_IMAGES} 张图片`);
+      return;
+    }
 
-    // 上传图片
+    const filesToUpload = files.slice(0, remainingSlots);
     setIsUploading(true);
+
     try {
-      const result = await api.uploadImage(file);
-      if (result.success && result.url) {
-        setProofImage(result.url);
-      } else {
-        setVerifyMessage(result.message || '图片上传失败');
-        setProofImagePreview(null);
+      for (const file of filesToUpload) {
+        // 生成预览
+        const preview = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+
+        // 上传图片
+        const result = await api.uploadImage(file);
+        if (result.success && result.url) {
+          setProofImages(prev => [...prev, { url: result.url, preview }]);
+        } else {
+          setVerifyMessage(result.message || '图片上传失败');
+        }
       }
     } catch (error) {
       console.error('上传图片失败:', error);
       setVerifyMessage('图片上传失败');
-      setProofImagePreview(null);
     } finally {
       setIsUploading(false);
+      // 清空 input 以便重复选择同一文件
+      e.target.value = '';
     }
-  }, [api]);
+  }, [api, proofImages.length]);
+
+  // 删除已上传的图片
+  const handleRemoveImage = useCallback((index) => {
+    setProofImages(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
   // 构建频道/群组链接
   const getTargetLink = useCallback(() => {
@@ -195,15 +230,21 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
 
   // 提交截图证明（点赞任务专用）
   const handleSubmitProof = useCallback(async () => {
-    if (!quest || !proofImage) return;
+    if (!quest || proofImages.length === 0) return;
     setIsLoading(true);
     setStep('verifying');
     setVerifyMessage('正在提交...');
 
     try {
-      const result = await api.submitQuest(quest.id, { type: 'twitter_like' }, proofImage);
+      // 提交多张图片URL和推文链接
+      const imageUrls = proofImages.map(img => img.url);
+      const result = await api.submitQuest(quest.id, { type: 'twitter_like', tweetLink }, imageUrls);
 
-      if (result.pendingReview) {
+      if (result.requiresTwitterBind) {
+        // 需要绑定 Twitter
+        setStep('need_bind');
+        setVerifyMessage(result.message || '请先绑定 Twitter 账号');
+      } else if (result.pendingReview) {
         // 等待人工审核
         setStep('pending_review');
         setVerifyMessage(result.message || '截图已提交，等待审核');
@@ -223,7 +264,7 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
     } finally {
       setIsLoading(false);
     }
-  }, [api, quest, proofImage, onSubmit]);
+  }, [api, quest, proofImages, tweetLink, onSubmit]);
 
   // 验证是否完成任务
   const handleVerify = useCallback(async () => {
@@ -324,12 +365,13 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
       padding: '20px 20px 40px 20px',
       paddingBottom: 'calc(40px + env(safe-area-inset-bottom, 20px))',
       width: '100%',
-      maxHeight: '80vh',
+      maxHeight: '85vh',
       animation: 'slideUp 0.3s ease-out',
       border: '1px solid rgba(0, 229, 255, 0.2)',
       borderBottom: 'none',
       position: 'relative',
-      overflow: 'hidden',
+      overflowY: 'auto',
+      overflowX: 'hidden',
     },
     glowEffect: {
       position: 'absolute',
@@ -870,6 +912,30 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
       );
     }
 
+    // 审核被拒绝状态（可重新提交）
+    if (step === 'rejected') {
+      return (
+        <>
+          <div style={styles.statusContainer}>
+            <div style={styles.statusIcon}><IconInfo size={56} color="#ff4da6" /></div>
+            <p style={styles.statusText}>审核未通过</p>
+            <p style={styles.statusHint}>{verifyMessage || '您的截图未通过审核，请重新提交'}</p>
+          </div>
+          <div style={styles.reward}>
+            奖励: <IconDollar size={14} color="#39ff14" /> +{quest.reward.amount} USDT <IconStar size={14} color="#ffc107" /> +{getRewardDisplay(quest.reward).points} 积分
+          </div>
+          <div style={styles.buttons}>
+            <AnimatedButton style={styles.cancelButton} onClick={onClose}>
+              稍后再说
+            </AnimatedButton>
+            <AnimatedButton style={styles.primaryButton} onClick={() => setStep('upload_proof')}>
+              重新提交
+            </AnimatedButton>
+          </div>
+        </>
+      );
+    }
+
     // 上传截图状态（点赞任务专用）
     if (step === 'upload_proof') {
       return (
@@ -881,7 +947,7 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
             </span>
           </div>
           <h2 style={styles.title}>{quest.title}</h2>
-          <p style={styles.desc}>请上传点赞成功的截图，审核通过后将发放奖励</p>
+          <p style={styles.desc}>请上传点赞成功的截图（最多 {MAX_IMAGES} 张），审核通过后将发放奖励</p>
 
           {/* 截图提示 */}
           <div style={{
@@ -899,58 +965,141 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
             <div>2. 截图需显示<strong>推文作者</strong>（确认是指定推文）</div>
             <div>3. 截图需显示<strong>您的登录账号</strong>（侧边栏或顶部）</div>
             <div style={{ marginTop: 8, color: 'rgba(255, 255, 255, 0.5)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <IconInfo size={12} color="rgba(255, 255, 255, 0.5)" /> 推文太长？请使用手机的「长截图」或「滚动截图」功能
+              <IconInfo size={12} color="rgba(255, 255, 255, 0.5)" /> 推文太长？可上传多张截图或使用「长截图」功能
             </div>
           </div>
 
-          {/* 图片上传区域 */}
-          <div style={{
-            background: 'rgba(0, 0, 0, 0.3)',
-            borderRadius: 12,
-            padding: 20,
-            marginBottom: 20,
-            textAlign: 'center',
-            border: `2px dashed ${proofImagePreview ? '#39ff14' : 'rgba(255, 255, 255, 0.2)'}`,
-            cursor: 'pointer',
-            position: 'relative',
-            minHeight: 120,
-          }} onClick={() => document.getElementById('proof-image-input').click()}>
+          {/* 推文链接输入框 */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 13,
+              fontWeight: '600',
+              color: '#00e5ff',
+              marginBottom: 8,
+              fontFamily: "'Rajdhani', sans-serif",
+            }}>
+              推文链接（方便审核员核实）
+            </label>
             <input
-              id="proof-image-input"
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              style={{ display: 'none' }}
+              type="url"
+              placeholder="https://x.com/... 或 https://twitter.com/..."
+              value={tweetLink}
+              onChange={(e) => setTweetLink(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                fontSize: 14,
+                borderRadius: 8,
+                border: '1px solid rgba(0, 229, 255, 0.3)',
+                background: 'rgba(0, 0, 0, 0.4)',
+                color: '#fff',
+                outline: 'none',
+                fontFamily: "'Rajdhani', sans-serif",
+                boxSizing: 'border-box',
+              }}
             />
-            {isUploading ? (
-              <>
-                <div style={styles.spinner} />
-                <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>上传中...</p>
-              </>
-            ) : proofImagePreview ? (
-              <>
-                <img
-                  src={proofImagePreview}
-                  alt="截图预览"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: 200,
-                    borderRadius: 8,
-                    marginBottom: 8,
-                  }}
-                />
-                <p style={{ fontSize: 12, color: '#39ff14', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                  <IconCheck size={12} color="#39ff14" /> 点击更换图片
-                </p>
-              </>
-            ) : (
-              <>
-                <div style={{ marginBottom: 8 }}><IconInfo size={40} color="rgba(255, 255, 255, 0.4)" /></div>
-                <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>
-                  点击选择截图
-                </p>
-              </>
-            )}
+          </div>
+
+          {/* 已上传的图片预览 */}
+          {proofImages.length > 0 && (
+            <div style={{
+              display: 'flex',
+              gap: 10,
+              marginBottom: 16,
+              flexWrap: 'wrap',
+            }}>
+              {proofImages.map((img, index) => (
+                <div key={index} style={{
+                  position: 'relative',
+                  width: 80,
+                  height: 80,
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  border: '2px solid #39ff14',
+                }}>
+                  <img
+                    src={img.preview}
+                    alt={`截图 ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                  {/* 删除按钮 */}
+                  <button
+                    onClick={() => handleRemoveImage(index)}
+                    style={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -6,
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      background: '#ff4d4d',
+                      border: 'none',
+                      color: '#fff',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 图片上传区域 */}
+          {proofImages.length < MAX_IMAGES && (
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              borderRadius: 12,
+              padding: 20,
+              marginBottom: 16,
+              textAlign: 'center',
+              border: '2px dashed rgba(255, 255, 255, 0.2)',
+              cursor: 'pointer',
+              position: 'relative',
+              minHeight: 100,
+            }} onClick={() => document.getElementById('proof-image-input').click()}>
+              <input
+                id="proof-image-input"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageSelect}
+                style={{ display: 'none' }}
+              />
+              {isUploading ? (
+                <>
+                  <div style={styles.spinner} />
+                  <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>上传中...</p>
+                </>
+              ) : (
+                <>
+                  <div style={{ marginBottom: 8 }}><IconInfo size={32} color="rgba(255, 255, 255, 0.4)" /></div>
+                  <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>
+                    {proofImages.length === 0 ? '点击选择截图' : `继续添加（还可添加 ${MAX_IMAGES - proofImages.length} 张）`}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* 已上传数量提示 */}
+          <div style={{
+            fontSize: 12,
+            color: proofImages.length > 0 ? '#39ff14' : 'rgba(255, 255, 255, 0.4)',
+            marginBottom: 12,
+            textAlign: 'center',
+          }}>
+            已上传 {proofImages.length}/{MAX_IMAGES} 张截图
           </div>
 
           <div style={styles.reward}>
@@ -963,10 +1112,10 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
             <AnimatedButton
               style={{
                 ...styles.verifyButton,
-                opacity: (proofImage && !isUploading) ? 1 : 0.5,
+                opacity: (proofImages.length > 0 && !isUploading) ? 1 : 0.5,
               }}
               onClick={handleSubmitProof}
-              disabled={!proofImage || isUploading || isLoading}
+              disabled={proofImages.length === 0 || isUploading || isLoading}
             >
               {isLoading ? '提交中...' : '提交审核'}
             </AnimatedButton>

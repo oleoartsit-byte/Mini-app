@@ -28,7 +28,8 @@ interface CreateQuestDto {
 
 interface SubmitDto {
   proof: Record<string, any>;
-  proofImage?: string;  // 任务完成截图 URL
+  proofImage?: string;  // 任务完成截图 URL（单张，兼容旧版）
+  proofImages?: string[];  // 任务完成截图 URL 数组（多张）
 }
 
 @Injectable()
@@ -302,8 +303,9 @@ export class QuestsService {
       };
     }
 
-    // 只有 CLAIMED 或 VERIFIED 状态可以提交验证
-    if (action.status !== ActionStatus.CLAIMED && action.status !== ActionStatus.VERIFIED) {
+    // 只有 CLAIMED、VERIFIED 或 REJECTED 状态可以提交验证
+    // REJECTED 状态允许用户重新提交截图
+    if (action.status !== ActionStatus.CLAIMED && action.status !== ActionStatus.VERIFIED && action.status !== ActionStatus.REJECTED) {
       return {
         success: false,
         message: `任务当前状态: ${action.status}，无法提交`,
@@ -351,8 +353,22 @@ export class QuestsService {
 
     // 如果任务需要截图审核（如 LIKE_TWITTER）
     if (verificationResult.requiresProofImage) {
+      // 强制要求绑定 Twitter 账号才能提交点赞任务
+      if (!user?.twitterId || !user?.twitterUsername) {
+        return {
+          success: false,
+          message: '请先绑定 Twitter 账号后再提交点赞任务',
+          status: action.status,
+          requiresTwitterBind: true
+        };
+      }
+
+      // 支持多图片（proofImages）或单图片（proofImage）
+      const proofImages = dto.proofImages || (dto.proofImage ? [dto.proofImage] : []);
+      const tweetLink = dto.proof?.tweetLink || null;
+
       // 检查是否提交了截图
-      if (!dto.proofImage) {
+      if (proofImages.length === 0) {
         return {
           success: false,
           message: '请上传任务完成截图',
@@ -361,12 +377,15 @@ export class QuestsService {
         };
       }
 
+      // 使用第一张图片进行 AI 验证（后续可扩展为多图验证）
+      const primaryProofImage = proofImages[0];
+
       // 使用 AI 验证截图
       if (this.aiService.isAvailable() && user?.twitterUsername) {
-        this.logger.log(`AI 验证截图: 用户 @${user.twitterUsername}, 图片 ${dto.proofImage}`);
+        this.logger.log(`AI 验证截图: 用户 @${user.twitterUsername}, 图片 ${primaryProofImage}, 共 ${proofImages.length} 张`);
 
         const aiResult = await this.aiService.verifyLikeScreenshot(
-          dto.proofImage,
+          primaryProofImage,
           user.twitterUsername,
           quest.targetUrl || undefined
         );
@@ -383,8 +402,8 @@ export class QuestsService {
             const updatedAction = await tx.action.update({
               where: { id: action.id },
               data: {
-                proof: { ...dto.proof, aiVerification: JSON.parse(JSON.stringify(aiResult)) },
-                proofImage: dto.proofImage,
+                proof: { ...dto.proof, proofImages, tweetLink, aiVerification: JSON.parse(JSON.stringify(aiResult)) },
+                proofImage: primaryProofImage,
                 status: ActionStatus.REWARDED,
                 submittedAt: new Date(),
                 verifiedAt: new Date(),
@@ -456,8 +475,8 @@ export class QuestsService {
         await this.prisma.action.update({
           where: { id: action.id },
           data: {
-            proof: { ...dto.proof, aiVerification: JSON.parse(JSON.stringify(aiResult)) },
-            proofImage: dto.proofImage,
+            proof: { ...dto.proof, proofImages, tweetLink, aiVerification: JSON.parse(JSON.stringify(aiResult)) },
+            proofImage: primaryProofImage,
             status: ActionStatus.SUBMITTED,
             submittedAt: new Date(),
             twitterId: user.twitterId || undefined,
@@ -477,8 +496,8 @@ export class QuestsService {
       await this.prisma.action.update({
         where: { id: action.id },
         data: {
-          proof: dto.proof,
-          proofImage: dto.proofImage,
+          proof: { ...dto.proof, proofImages, tweetLink },
+          proofImage: primaryProofImage,
           status: ActionStatus.SUBMITTED,
           submittedAt: new Date(),
           twitterId: user?.twitterId || undefined,

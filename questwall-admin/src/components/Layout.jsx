@@ -11,6 +11,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   ReadOutlined,
+  AuditOutlined,
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
@@ -18,6 +19,7 @@ const { Header, Sider, Content } = Layout;
 const menuItems = [
   { key: 'dashboard', icon: <DashboardOutlined />, label: '仪表盘' },
   { key: 'quests', icon: <FileTextOutlined />, label: '任务管理' },
+  { key: 'reviews', icon: <AuditOutlined />, label: '截图审核' },
   { key: 'tutorials', icon: <ReadOutlined />, label: '教程管理' },
   { key: 'users', icon: <UserOutlined />, label: '用户管理' },
   { key: 'rewards', icon: <GiftOutlined />, label: '奖励记录' },

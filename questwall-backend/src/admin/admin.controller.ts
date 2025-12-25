@@ -91,6 +91,19 @@ export class AdminController {
     return this.adminService.getDashboardStats();
   }
 
+  @Get('stats/trends')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取趋势数据（图表）' })
+  @ApiQuery({ name: 'days', required: false, type: Number, description: '天数，默认7天' })
+  async getTrendData(
+    @Headers('authorization') authHeader: string,
+    @Query('days') days?: string,
+  ) {
+    this.validateAdmin(authHeader);
+    const daysNum = parseInt(days) || 7;
+    return this.adminService.getTrendData(daysNum);
+  }
+
   // ==================== 任务管理接口 ====================
 
   @Get('quests')
@@ -523,5 +536,65 @@ export class AdminController {
   ) {
     this.validateAdmin(authHeader);
     return this.adminService.deleteTutorial(BigInt(id));
+  }
+
+  // ==================== 系统配置接口 ====================
+
+  @Get('configs')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取所有配置' })
+  async getAllConfigs(@Headers('authorization') authHeader: string) {
+    this.validateAdmin(authHeader);
+    return this.adminService.getAllConfigs();
+  }
+
+  @Post('configs/checkin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '保存签到配置' })
+  async saveCheckInConfig(
+    @Headers('authorization') authHeader: string,
+    @Body() body: {
+      day1?: number;
+      day2?: number;
+      day3?: number;
+      day4?: number;
+      day5?: number;
+      day6?: number;
+      day7?: number;
+      makeupCost?: number;
+    },
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.saveCheckInConfig(body);
+  }
+
+  @Post('configs/invite')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '保存邀请配置' })
+  async saveInviteConfig(
+    @Headers('authorization') authHeader: string,
+    @Body() body: {
+      inviterReward?: number;
+      inviteeReward?: number;
+      maxInvites?: number;
+    },
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.saveInviteConfig(body);
+  }
+
+  @Post('configs/system')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '保存系统配置' })
+  async saveSystemConfig(
+    @Headers('authorization') authHeader: string,
+    @Body() body: {
+      siteName?: string;
+      maintenanceMode?: boolean;
+      telegramBotToken?: string;
+    },
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.saveSystemConfig(body);
   }
 }

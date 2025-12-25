@@ -131,6 +131,117 @@ export class AdminService {
     };
   }
 
+  // 获取趋势数据（用于图表）
+  async getTrendData(days: number = 7) {
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - days + 1);
+    startDate.setHours(0, 0, 0, 0);
+
+    // 生成日期范围
+    const dateRange: Date[] = [];
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      dateRange.push(date);
+    }
+
+    // 获取每日新增用户数
+    const userCounts = await Promise.all(
+      dateRange.map(async (date) => {
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const count = await this.prisma.user.count({
+          where: {
+            createdAt: {
+              gte: date,
+              lt: nextDate,
+            },
+          },
+        });
+        return {
+          date: date.toISOString().split('T')[0],
+          count,
+        };
+      }),
+    );
+
+    // 获取每日奖励发放金额
+    const rewardCounts = await Promise.all(
+      dateRange.map(async (date) => {
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const result = await this.prisma.reward.aggregate({
+          where: {
+            createdAt: {
+              gte: date,
+              lt: nextDate,
+            },
+            status: 'COMPLETED',
+          },
+          _sum: { amount: true },
+          _count: { id: true },
+        });
+        return {
+          date: date.toISOString().split('T')[0],
+          amount: parseFloat(result._sum.amount?.toString() || '0'),
+          count: result._count.id,
+        };
+      }),
+    );
+
+    // 获取每日任务完成数
+    const questCompletions = await Promise.all(
+      dateRange.map(async (date) => {
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const count = await this.prisma.action.count({
+          where: {
+            verifiedAt: {
+              gte: date,
+              lt: nextDate,
+            },
+            status: 'REWARDED',
+          },
+        });
+        return {
+          date: date.toISOString().split('T')[0],
+          count,
+        };
+      }),
+    );
+
+    // 获取每日提现统计
+    const payoutStats = await Promise.all(
+      dateRange.map(async (date) => {
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const result = await this.prisma.payout.aggregate({
+          where: {
+            createdAt: {
+              gte: date,
+              lt: nextDate,
+            },
+          },
+          _sum: { amount: true },
+          _count: { id: true },
+        });
+        return {
+          date: date.toISOString().split('T')[0],
+          amount: parseFloat(result._sum.amount?.toString() || '0'),
+          count: result._count.id,
+        };
+      }),
+    );
+
+    return {
+      users: userCounts,
+      rewards: rewardCounts,
+      questCompletions,
+      payouts: payoutStats,
+    };
+  }
+
   // ==================== 任务管理 ====================
 
   async getQuests(page: number = 1, pageSize: number = 10, status?: QuestStatus) {
@@ -403,9 +514,21 @@ export class AdminService {
       throw new BadRequestException('用户不存在');
     }
 
-    // 计算总奖励
+    // 计算总奖励（已完成的）
     const totalRewards = await this.prisma.reward.aggregate({
-      where: { userId: id },
+      where: { userId: id, status: 'COMPLETED' },
+      _sum: { amount: true },
+    });
+
+    // 计算已提现金额
+    const totalWithdrawn = await this.prisma.payout.aggregate({
+      where: { beneficiaryId: id, status: 'COMPLETED' },
+      _sum: { amount: true },
+    });
+
+    // 计算待处理提现
+    const pendingWithdraw = await this.prisma.payout.aggregate({
+      where: { beneficiaryId: id, status: { in: ['PENDING', 'PROCESSING'] } },
       _sum: { amount: true },
     });
 
@@ -419,6 +542,37 @@ export class AdminService {
     // 获取风险分详情
     const riskDetails = await this.riskService.getRiskScore(id);
 
+    // 获取任务完成历史（包括进行中的）
+    const questActions = await this.prisma.action.findMany({
+      where: { userId: id },
+      include: {
+        quest: {
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            rewardType: true,
+            rewardAmount: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    // 获取提现记录
+    const payoutRecords = await this.prisma.payout.findMany({
+      where: { beneficiaryId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+
+    // 计算可用余额 = 总奖励 - 已提现 - 待处理提现
+    const totalEarned = totalRewards._sum.amount?.toNumber() || 0;
+    const withdrawn = totalWithdrawn._sum.amount?.toNumber() || 0;
+    const pending = pendingWithdraw._sum.amount?.toNumber() || 0;
+    const availableBalance = totalEarned - withdrawn - pending;
+
     return {
       id: user.id.toString(),
       tgId: user.tgId.toString(),
@@ -427,11 +581,48 @@ export class AdminService {
       lastName: user.lastName,
       walletAddr: user.walletAddr,
       locale: user.locale,
+      // Twitter 绑定信息
+      twitterId: user.twitterId,
+      twitterUsername: user.twitterUsername,
+      twitterBindAt: user.twitterBindAt,
+      // 风险信息
       riskScore: riskDetails.score,
       riskLevel: riskDetails.level,
       riskFactors: riskDetails.factors,
+      // 统计信息
       completedQuests: user._count.actions,
-      totalRewards: totalRewards._sum.amount?.toString() || '0',
+      totalRewards: totalEarned.toFixed(4),
+      // 余额信息
+      balance: {
+        total: totalEarned.toFixed(4),
+        withdrawn: withdrawn.toFixed(4),
+        pending: pending.toFixed(4),
+        available: availableBalance.toFixed(4),
+      },
+      // 任务历史
+      questHistory: questActions.map((a) => ({
+        id: a.id.toString(),
+        questId: a.quest?.id.toString(),
+        questType: a.quest?.type,
+        questTitle: a.quest?.title,
+        status: a.status,
+        rewardType: a.quest?.rewardType,
+        rewardAmount: a.quest?.rewardAmount.toString(),
+        claimedAt: a.claimedAt,
+        submittedAt: a.submittedAt,
+        verifiedAt: a.verifiedAt,
+      })),
+      // 提现记录
+      payoutHistory: payoutRecords.map((p) => ({
+        id: p.id.toString(),
+        amount: p.amount.toString(),
+        asset: p.asset,
+        status: p.status,
+        toAddress: p.toAddress,
+        txHash: p.txHash,
+        createdAt: p.createdAt,
+        processedAt: p.processedAt,
+      })),
       recentRewards: user.rewards.map((r) => ({
         id: r.id.toString(),
         type: r.type,
@@ -1080,28 +1271,37 @@ export class AdminService {
     ]);
 
     return {
-      items: items.map((action) => ({
-        id: action.id.toString(),
-        status: action.status,
-        proofImage: action.proofImage,
-        proof: action.proof,  // 包含 AI 验证结果
-        submittedAt: action.submittedAt,
-        user: action.user ? {
-          id: action.user.id.toString(),
-          username: action.user.username || action.user.firstName || '-',
-          tgId: action.user.tgId.toString(),
-          twitterUsername: action.user.twitterUsername,
-          riskScore: action.user.riskScore,
-        } : null,
-        quest: action.quest ? {
-          id: action.quest.id.toString(),
-          type: action.quest.type,
-          title: action.quest.title,
-          targetUrl: action.quest.targetUrl,
-          rewardType: action.quest.rewardType,
-          rewardAmount: action.quest.rewardAmount.toString(),
-        } : null,
-      })),
+      items: items.map((action) => {
+        // 从 proof 中提取 proofImages 数组，兼容单图和多图
+        const proofData = action.proof as any;
+        const proofImages = proofData?.proofImages || (action.proofImage ? [action.proofImage] : []);
+        const tweetLink = proofData?.tweetLink || null;
+
+        return {
+          id: action.id.toString(),
+          status: action.status,
+          proofImage: action.proofImage,
+          proofImages,  // 图片数组
+          tweetLink,    // 推文链接
+          proof: action.proof,  // 包含 AI 验证结果
+          submittedAt: action.submittedAt,
+          user: action.user ? {
+            id: action.user.id.toString(),
+            username: action.user.username || action.user.firstName || '-',
+            tgId: action.user.tgId.toString(),
+            twitterUsername: action.user.twitterUsername,
+            riskScore: action.user.riskScore,
+          } : null,
+          quest: action.quest ? {
+            id: action.quest.id.toString(),
+            type: action.quest.type,
+            title: action.quest.title,
+            targetUrl: action.quest.targetUrl,
+            rewardType: action.quest.rewardType,
+            rewardAmount: action.quest.rewardAmount.toString(),
+          } : null,
+        };
+      }),
       total,
       pendingCount,
       page,
@@ -1182,10 +1382,19 @@ export class AdminService {
       _count: { id: true },
     });
 
+    // 从 proof 中提取 proofImages 数组，兼容单图和多图
+    const proofData = action.proof as any;
+    const proofImages = proofData?.proofImages || (action.proofImage ? [action.proofImage] : []);
+    const tweetLink = proofData?.tweetLink || null;
+    const rejectReason = proofData?.rejectReason || null;
+
     return {
       id: action.id.toString(),
       status: action.status,
       proofImage: action.proofImage,
+      proofImages,  // 图片数组
+      tweetLink,    // 推文链接
+      rejectReason, // 拒绝原因
       proof: action.proof,  // 包含 AI 验证结果
       twitterId: action.twitterId,
       claimedAt: action.claimedAt,
@@ -1407,6 +1616,119 @@ export class AdminService {
         totalReward: totalReward.toFixed(4),
       },
     };
+  }
+
+  // ==================== 系统配置管理 ====================
+
+  // 获取所有配置
+  async getAllConfigs() {
+    const configs = await this.prisma.systemConfig.findMany();
+
+    // 转换为对象格式
+    const result: Record<string, any> = {};
+    for (const config of configs) {
+      result[config.key] = config.value;
+    }
+
+    // 返回带默认值的配置
+    return {
+      checkin: result['checkin_config'] || {
+        day1: 10,
+        day2: 20,
+        day3: 30,
+        day4: 40,
+        day5: 50,
+        day6: 60,
+        day7: 100,
+        makeupCost: 20,
+      },
+      invite: result['invite_config'] || {
+        inviterReward: 1,
+        inviteeReward: 1,
+        maxInvites: 100,
+      },
+      system: result['system_config'] || {
+        siteName: 'Quest Wall',
+        maintenanceMode: false,
+        telegramBotToken: '',
+      },
+    };
+  }
+
+  // 获取单个配置
+  async getConfig(key: string) {
+    const config = await this.prisma.systemConfig.findUnique({
+      where: { key },
+    });
+    return config?.value || null;
+  }
+
+  // 保存签到配置
+  async saveCheckInConfig(data: {
+    day1?: number;
+    day2?: number;
+    day3?: number;
+    day4?: number;
+    day5?: number;
+    day6?: number;
+    day7?: number;
+    makeupCost?: number;
+  }) {
+    const config = await this.prisma.systemConfig.upsert({
+      where: { key: 'checkin_config' },
+      update: {
+        value: data,
+      },
+      create: {
+        key: 'checkin_config',
+        value: data,
+        description: '签到奖励配置',
+      },
+    });
+
+    return { success: true, message: '签到配置保存成功', data: config.value };
+  }
+
+  // 保存邀请配置
+  async saveInviteConfig(data: {
+    inviterReward?: number;
+    inviteeReward?: number;
+    maxInvites?: number;
+  }) {
+    const config = await this.prisma.systemConfig.upsert({
+      where: { key: 'invite_config' },
+      update: {
+        value: data,
+      },
+      create: {
+        key: 'invite_config',
+        value: data,
+        description: '邀请奖励配置',
+      },
+    });
+
+    return { success: true, message: '邀请配置保存成功', data: config.value };
+  }
+
+  // 保存系统配置
+  async saveSystemConfig(data: {
+    siteName?: string;
+    maintenanceMode?: boolean;
+    telegramBotToken?: string;
+  }) {
+    const config = await this.prisma.systemConfig.upsert({
+      where: { key: 'system_config' },
+      update: {
+        value: data,
+      },
+      create: {
+        key: 'system_config',
+        value: data,
+        description: '系统配置',
+      },
+    });
+
+    return { success: true, message: '系统配置保存成功', data: config.value };
   }
 
   // ==================== 教程管理 ====================

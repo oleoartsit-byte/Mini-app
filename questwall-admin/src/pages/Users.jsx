@@ -17,6 +17,10 @@ import {
   DatePicker,
   Popconfirm,
   Badge,
+  Statistic,
+  Row,
+  Col,
+  Typography,
 } from 'antd';
 import {
   EyeOutlined,
@@ -28,11 +32,15 @@ import {
   UserOutlined,
   DesktopOutlined,
   GlobalOutlined,
+  TwitterOutlined,
+  WalletOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import { userApi, blacklistApi } from '../services/api';
 
 const { Search } = Input;
 const { Option } = Select;
+const { Link, Text } = Typography;
 
 // 黑名单类型映射
 const BLACKLIST_TYPE_MAP = {
@@ -416,10 +424,11 @@ export default function Users() {
         open={detailVisible}
         onCancel={() => setDetailVisible(false)}
         footer={null}
-        width={700}
+        width={900}
       >
         {selectedUser && (
           <>
+            {/* 基本信息 */}
             <Descriptions column={2} bordered size="small">
               <Descriptions.Item label="ID">{selectedUser.id}</Descriptions.Item>
               <Descriptions.Item label="Telegram ID">
@@ -436,138 +445,308 @@ export default function Users() {
               <Descriptions.Item label="钱包地址" span={2}>
                 {selectedUser.walletAddr || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="风险评估" span={2}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Tag
-                    color={
-                      selectedUser.riskScore > 50
-                        ? 'red'
-                        : selectedUser.riskScore > 20
-                        ? 'orange'
-                        : 'green'
-                    }
-                  >
-                    {selectedUser.riskScore} 分
-                  </Tag>
-                  <Tag
-                    color={
-                      selectedUser.riskLevel === 'high'
-                        ? 'red'
-                        : selectedUser.riskLevel === 'medium'
-                        ? 'orange'
-                        : 'green'
-                    }
-                  >
-                    {selectedUser.riskLevel === 'high'
-                      ? '高风险'
-                      : selectedUser.riskLevel === 'medium'
-                      ? '中风险'
-                      : '低风险'}
-                  </Tag>
-                </div>
-              </Descriptions.Item>
-              {selectedUser.riskFactors && selectedUser.riskFactors.length > 0 && (
-                <Descriptions.Item label="风险因素" span={2}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {selectedUser.riskFactors.map((factor, idx) => (
-                      <Tag key={idx} color="warning" icon={<WarningOutlined />}>
-                        {factor}
-                      </Tag>
-                    ))}
-                  </div>
-                </Descriptions.Item>
-              )}
-              <Descriptions.Item label="语言">
-                {selectedUser.locale}
-              </Descriptions.Item>
-              <Descriptions.Item label="完成任务数">
-                {selectedUser.completedQuests || 0}
-              </Descriptions.Item>
-              <Descriptions.Item label="获得奖励">
-                {selectedUser.totalRewards || 0} Stars
-              </Descriptions.Item>
-              <Descriptions.Item label="注册时间">
-                {new Date(selectedUser.createdAt).toLocaleString('zh-CN')}
-              </Descriptions.Item>
             </Descriptions>
 
-            {/* 风控事件历史 */}
-            {selectedUser.riskEvents && selectedUser.riskEvents.length > 0 && (
-              <Collapse
-                style={{ marginTop: 16 }}
-                items={[
-                  {
-                    key: 'risk-events',
-                    label: (
-                      <span>
-                        <ExclamationCircleOutlined style={{ marginRight: 8 }} />
-                        风控事件历史 ({selectedUser.riskEvents.length})
-                      </span>
-                    ),
-                    children: (
-                      <Timeline
-                        items={selectedUser.riskEvents.map((event) => ({
-                          color:
-                            event.severity === 'high' || event.severity === 'critical'
-                              ? 'red'
-                              : event.severity === 'medium'
-                              ? 'orange'
-                              : 'blue',
-                          children: (
-                            <div>
-                              <div style={{ fontWeight: 500 }}>
-                                <Tag
-                                  color={
-                                    event.severity === 'high' || event.severity === 'critical'
-                                      ? 'red'
-                                      : event.severity === 'medium'
-                                      ? 'orange'
-                                      : 'blue'
-                                  }
-                                  size="small"
-                                >
-                                  {event.severity}
-                                </Tag>
-                                {event.eventType}
-                              </div>
-                              <div style={{ fontSize: 12, color: '#888' }}>
-                                {new Date(event.createdAt).toLocaleString('zh-CN')}
-                              </div>
-                              {event.details && (
-                                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                                  {typeof event.details === 'object'
-                                    ? JSON.stringify(event.details)
-                                    : event.details}
-                                </div>
-                              )}
-                            </div>
-                          ),
-                        }))}
-                      />
-                    ),
-                  },
-                ]}
-              />
-            )}
+            {/* Twitter 绑定信息 */}
+            <Card
+              size="small"
+              title={<><TwitterOutlined style={{ marginRight: 8 }} />Twitter 绑定</>}
+              style={{ marginTop: 16 }}
+            >
+              {selectedUser.twitterUsername ? (
+                <Descriptions column={3} size="small">
+                  <Descriptions.Item label="用户名">
+                    <Link href={`https://x.com/${selectedUser.twitterUsername}`} target="_blank">
+                      @{selectedUser.twitterUsername}
+                    </Link>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Twitter ID">
+                    {selectedUser.twitterId || '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="绑定时间">
+                    {selectedUser.twitterBindAt
+                      ? new Date(selectedUser.twitterBindAt).toLocaleString('zh-CN')
+                      : '-'}
+                  </Descriptions.Item>
+                </Descriptions>
+              ) : (
+                <Text type="secondary">未绑定 Twitter</Text>
+              )}
+            </Card>
 
-            {/* 无风险事件提示 */}
-            {(!selectedUser.riskEvents || selectedUser.riskEvents.length === 0) && (
-              <div
-                style={{
-                  marginTop: 16,
-                  padding: 12,
-                  background: '#f6ffed',
-                  border: '1px solid #b7eb8f',
-                  borderRadius: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <InfoCircleOutlined style={{ color: '#52c41a' }} />
-                <span>该用户暂无风控事件记录</span>
+            {/* 余额信息 */}
+            <Card
+              size="small"
+              title={<><WalletOutlined style={{ marginRight: 8 }} />账户余额</>}
+              style={{ marginTop: 16 }}
+            >
+              {selectedUser.balance ? (
+                <Row gutter={16}>
+                  <Col span={6}>
+                    <Statistic
+                      title="总收入"
+                      value={selectedUser.balance.total}
+                      suffix="USDT"
+                      valueStyle={{ fontSize: 18 }}
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="可用余额"
+                      value={selectedUser.balance.available}
+                      suffix="USDT"
+                      valueStyle={{ fontSize: 18, color: '#52c41a' }}
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="已提现"
+                      value={selectedUser.balance.withdrawn}
+                      suffix="USDT"
+                      valueStyle={{ fontSize: 18 }}
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="处理中"
+                      value={selectedUser.balance.pending}
+                      suffix="USDT"
+                      valueStyle={{ fontSize: 18, color: '#faad14' }}
+                    />
+                  </Col>
+                </Row>
+              ) : (
+                <Text type="secondary">暂无余额信息</Text>
+              )}
+            </Card>
+
+            {/* 风险评估 */}
+            <Card
+              size="small"
+              title={<><ExclamationCircleOutlined style={{ marginRight: 8 }} />风险评估</>}
+              style={{ marginTop: 16 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Tag
+                  color={
+                    selectedUser.riskScore > 50
+                      ? 'red'
+                      : selectedUser.riskScore > 20
+                      ? 'orange'
+                      : 'green'
+                  }
+                >
+                  {selectedUser.riskScore} 分
+                </Tag>
+                <Tag
+                  color={
+                    selectedUser.riskLevel === 'high'
+                      ? 'red'
+                      : selectedUser.riskLevel === 'medium'
+                      ? 'orange'
+                      : 'green'
+                  }
+                >
+                  {selectedUser.riskLevel === 'high'
+                    ? '高风险'
+                    : selectedUser.riskLevel === 'medium'
+                    ? '中风险'
+                    : '低风险'}
+                </Tag>
               </div>
-            )}
+              {selectedUser.riskFactors && selectedUser.riskFactors.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {selectedUser.riskFactors.map((factor, idx) => (
+                    <Tag key={idx} color="warning" icon={<WarningOutlined />}>
+                      {factor}
+                    </Tag>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* 可折叠部分 */}
+            <Collapse
+              style={{ marginTop: 16 }}
+              items={[
+                // 任务历史
+                {
+                  key: 'quest-history',
+                  label: (
+                    <span>
+                      <HistoryOutlined style={{ marginRight: 8 }} />
+                      任务历史 ({selectedUser.questHistory?.length || 0})
+                    </span>
+                  ),
+                  children: selectedUser.questHistory?.length > 0 ? (
+                    <Table
+                      size="small"
+                      dataSource={selectedUser.questHistory}
+                      rowKey="id"
+                      pagination={false}
+                      columns={[
+                        {
+                          title: '任务',
+                          dataIndex: 'questTitle',
+                          ellipsis: true,
+                        },
+                        {
+                          title: '类型',
+                          dataIndex: 'questType',
+                          width: 100,
+                        },
+                        {
+                          title: '状态',
+                          dataIndex: 'status',
+                          width: 100,
+                          render: (status) => {
+                            const statusMap = {
+                              CLAIMED: { color: 'blue', text: '已领取' },
+                              SUBMITTED: { color: 'orange', text: '待审核' },
+                              VERIFIED: { color: 'cyan', text: '已验证' },
+                              REWARDED: { color: 'green', text: '已完成' },
+                              REJECTED: { color: 'red', text: '已拒绝' },
+                            };
+                            const config = statusMap[status] || { color: 'default', text: status };
+                            return <Tag color={config.color}>{config.text}</Tag>;
+                          },
+                        },
+                        {
+                          title: '奖励',
+                          dataIndex: 'rewardAmount',
+                          width: 100,
+                          render: (amount) => amount ? `${amount} USDT` : '-',
+                        },
+                        {
+                          title: '完成时间',
+                          dataIndex: 'verifiedAt',
+                          width: 160,
+                          render: (date) => date ? new Date(date).toLocaleString('zh-CN') : '-',
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <Text type="secondary">暂无任务记录</Text>
+                  ),
+                },
+                // 提现记录
+                {
+                  key: 'payout-history',
+                  label: (
+                    <span>
+                      <WalletOutlined style={{ marginRight: 8 }} />
+                      提现记录 ({selectedUser.payoutHistory?.length || 0})
+                    </span>
+                  ),
+                  children: selectedUser.payoutHistory?.length > 0 ? (
+                    <Table
+                      size="small"
+                      dataSource={selectedUser.payoutHistory}
+                      rowKey="id"
+                      pagination={false}
+                      columns={[
+                        {
+                          title: '金额',
+                          dataIndex: 'amount',
+                          width: 100,
+                          render: (amount, record) => `${amount} ${record.asset || 'USDT'}`,
+                        },
+                        {
+                          title: '状态',
+                          dataIndex: 'status',
+                          width: 100,
+                          render: (status) => {
+                            const statusMap = {
+                              PENDING: { color: 'orange', text: '待处理' },
+                              PROCESSING: { color: 'blue', text: '处理中' },
+                              COMPLETED: { color: 'green', text: '已完成' },
+                              FAILED: { color: 'red', text: '失败' },
+                            };
+                            const config = statusMap[status] || { color: 'default', text: status };
+                            return <Tag color={config.color}>{config.text}</Tag>;
+                          },
+                        },
+                        {
+                          title: '提现地址',
+                          dataIndex: 'toAddress',
+                          ellipsis: true,
+                          render: (addr) => addr ? `${addr.slice(0, 8)}...${addr.slice(-6)}` : '-',
+                        },
+                        {
+                          title: '申请时间',
+                          dataIndex: 'createdAt',
+                          width: 160,
+                          render: (date) => new Date(date).toLocaleString('zh-CN'),
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <Text type="secondary">暂无提现记录</Text>
+                  ),
+                },
+                // 风控事件历史
+                ...(selectedUser.riskEvents && selectedUser.riskEvents.length > 0
+                  ? [
+                      {
+                        key: 'risk-events',
+                        label: (
+                          <span>
+                            <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+                            风控事件 ({selectedUser.riskEvents.length})
+                          </span>
+                        ),
+                        children: (
+                          <Timeline
+                            items={selectedUser.riskEvents.map((event) => ({
+                              color:
+                                event.severity === 'high' || event.severity === 'critical'
+                                  ? 'red'
+                                  : event.severity === 'medium'
+                                  ? 'orange'
+                                  : 'blue',
+                              children: (
+                                <div>
+                                  <div style={{ fontWeight: 500 }}>
+                                    <Tag
+                                      color={
+                                        event.severity === 'high' || event.severity === 'critical'
+                                          ? 'red'
+                                          : event.severity === 'medium'
+                                          ? 'orange'
+                                          : 'blue'
+                                      }
+                                      size="small"
+                                    >
+                                      {event.severity}
+                                    </Tag>
+                                    {event.eventType}
+                                  </div>
+                                  <div style={{ fontSize: 12, color: '#888' }}>
+                                    {new Date(event.createdAt).toLocaleString('zh-CN')}
+                                  </div>
+                                  {event.details && (
+                                    <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                                      {typeof event.details === 'object'
+                                        ? JSON.stringify(event.details)
+                                        : event.details}
+                                    </div>
+                                  )}
+                                </div>
+                              ),
+                            }))}
+                          />
+                        ),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+
+            {/* 注册信息 */}
+            <div style={{ marginTop: 16, color: '#888', fontSize: 12 }}>
+              注册时间：{new Date(selectedUser.createdAt).toLocaleString('zh-CN')}
+              {selectedUser.locale && ` | 语言：${selectedUser.locale}`}
+            </div>
           </>
         )}
       </Modal>

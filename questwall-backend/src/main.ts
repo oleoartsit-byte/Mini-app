@@ -9,6 +9,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // 静态文件服务 - 上传的图片
+  // 编译后 main.js 在 dist/src/main.js，__dirname 是 dist/src/
+  // 上传目录在 dist/uploads/，所以需要 ../uploads
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
   });

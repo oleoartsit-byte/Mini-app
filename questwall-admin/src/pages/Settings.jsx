@@ -1,51 +1,71 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, InputNumber, Button, message, Tabs, Switch, Input, Divider, Space, Alert } from 'antd';
+import { Card, Form, InputNumber, Button, message, Tabs, Switch, Input, Divider, Space, Alert, Spin } from 'antd';
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
+import { configApi } from '../services/api';
 
 export default function Settings() {
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [checkInForm] = Form.useForm();
   const [inviteForm] = Form.useForm();
   const [systemForm] = Form.useForm();
 
   // 加载配置
   useEffect(() => {
-    // 从 localStorage 加载（实际应从后端获取）
-    const checkInConfig = JSON.parse(localStorage.getItem('admin_checkin_config') || '{}');
-    const inviteConfig = JSON.parse(localStorage.getItem('admin_invite_config') || '{}');
-    const systemConfig = JSON.parse(localStorage.getItem('admin_system_config') || '{}');
+    loadConfigs();
+  }, []);
 
-    checkInForm.setFieldsValue({
-      day1: checkInConfig.day1 || 10,
-      day2: checkInConfig.day2 || 20,
-      day3: checkInConfig.day3 || 30,
-      day4: checkInConfig.day4 || 40,
-      day5: checkInConfig.day5 || 50,
-      day6: checkInConfig.day6 || 60,
-      day7: checkInConfig.day7 || 100,
-      makeupCost: checkInConfig.makeupCost || 5,
-    });
+  const loadConfigs = async () => {
+    try {
+      setInitialLoading(true);
+      const configs = await configApi.getAll();
 
-    inviteForm.setFieldsValue({
-      inviterReward: inviteConfig.inviterReward || 10,
-      inviteeReward: inviteConfig.inviteeReward || 10,
-      maxInvites: inviteConfig.maxInvites || 100,
-    });
+      checkInForm.setFieldsValue({
+        day1: configs.checkin?.day1 ?? 10,
+        day2: configs.checkin?.day2 ?? 20,
+        day3: configs.checkin?.day3 ?? 30,
+        day4: configs.checkin?.day4 ?? 40,
+        day5: configs.checkin?.day5 ?? 50,
+        day6: configs.checkin?.day6 ?? 60,
+        day7: configs.checkin?.day7 ?? 100,
+        makeupCost: configs.checkin?.makeupCost ?? 20,
+      });
 
-    systemForm.setFieldsValue({
-      siteName: systemConfig.siteName || 'Quest Wall',
-      maintenanceMode: systemConfig.maintenanceMode || false,
-      telegramBotToken: systemConfig.telegramBotToken || '',
-    });
-  }, [checkInForm, inviteForm, systemForm]);
+      inviteForm.setFieldsValue({
+        inviterReward: configs.invite?.inviterReward ?? 1,
+        inviteeReward: configs.invite?.inviteeReward ?? 1,
+        maxInvites: configs.invite?.maxInvites ?? 100,
+      });
+
+      systemForm.setFieldsValue({
+        siteName: configs.system?.siteName ?? 'Quest Wall',
+        maintenanceMode: configs.system?.maintenanceMode ?? false,
+        telegramBotToken: configs.system?.telegramBotToken ?? '',
+      });
+
+      // 更新浏览器标题和侧边栏
+      if (configs.system?.siteName) {
+        document.title = `${configs.system.siteName} - 管理后台`;
+        window.dispatchEvent(new CustomEvent('adminConfigUpdated', {
+          detail: { siteName: configs.system.siteName }
+        }));
+      }
+    } catch (error) {
+      console.error('加载配置失败:', error);
+      message.error('加载配置失败');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   // 保存签到配置
   const saveCheckInConfig = async (values) => {
     setLoading(true);
     try {
-      localStorage.setItem('admin_checkin_config', JSON.stringify(values));
+      await configApi.saveCheckIn(values);
       message.success('签到配置保存成功');
     } catch (error) {
+      console.error('保存失败:', error);
       message.error('保存失败');
     } finally {
       setLoading(false);
@@ -56,9 +76,10 @@ export default function Settings() {
   const saveInviteConfig = async (values) => {
     setLoading(true);
     try {
-      localStorage.setItem('admin_invite_config', JSON.stringify(values));
+      await configApi.saveInvite(values);
       message.success('邀请配置保存成功');
     } catch (error) {
+      console.error('保存失败:', error);
       message.error('保存失败');
     } finally {
       setLoading(false);
@@ -69,9 +90,21 @@ export default function Settings() {
   const saveSystemConfig = async (values) => {
     setLoading(true);
     try {
-      localStorage.setItem('admin_system_config', JSON.stringify(values));
+      await configApi.saveSystem(values);
+
+      // 更新浏览器标签页标题
+      if (values.siteName) {
+        document.title = `${values.siteName} - 管理后台`;
+      }
+
+      // 触发自定义事件，通知其他组件配置已更新
+      window.dispatchEvent(new CustomEvent('adminConfigUpdated', {
+        detail: { siteName: values.siteName }
+      }));
+
       message.success('系统配置保存成功');
     } catch (error) {
+      console.error('保存失败:', error);
       message.error('保存失败');
     } finally {
       setLoading(false);
@@ -223,8 +256,8 @@ export default function Settings() {
                 <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
                   保存系统配置
                 </Button>
-                <Button icon={<ReloadOutlined />} onClick={() => window.location.reload()}>
-                  刷新页面
+                <Button icon={<ReloadOutlined />} onClick={loadConfigs}>
+                  重新加载
                 </Button>
               </Space>
             </Form.Item>
@@ -233,6 +266,14 @@ export default function Settings() {
       ),
     },
   ];
+
+  if (initialLoading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 0' }}>
+        <Spin size="large" tip="加载配置中..." />
+      </div>
+    );
+  }
 
   return (
     <div>

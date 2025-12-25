@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Layout, Menu, Button, Avatar, Dropdown } from 'antd';
+import { useState, useEffect, useCallback } from 'react';
+import { Layout, Menu, Button, Avatar, Dropdown, Badge } from 'antd';
 import {
   DashboardOutlined,
   FileTextOutlined,
@@ -13,22 +13,113 @@ import {
   ReadOutlined,
   AuditOutlined,
 } from '@ant-design/icons';
+import { reviewApi, payoutApi } from '../services/api';
 
 const { Header, Sider, Content } = Layout;
 
-const menuItems = [
-  { key: 'dashboard', icon: <DashboardOutlined />, label: '仪表盘' },
-  { key: 'quests', icon: <FileTextOutlined />, label: '任务管理' },
-  { key: 'reviews', icon: <AuditOutlined />, label: '截图审核' },
-  { key: 'tutorials', icon: <ReadOutlined />, label: '教程管理' },
-  { key: 'users', icon: <UserOutlined />, label: '用户管理' },
-  { key: 'rewards', icon: <GiftOutlined />, label: '奖励记录' },
-  { key: 'payouts', icon: <DollarOutlined />, label: '提现审核' },
-  { key: 'settings', icon: <SettingOutlined />, label: '系统设置' },
-];
+// 轮询间隔（毫秒）
+const POLL_INTERVAL = 30000; // 30秒
 
 export default function AdminLayout({ children, currentPage, onPageChange, user, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [siteName, setSiteName] = useState('Quest Wall');
+  const [pendingReviews, setPendingReviews] = useState(0);
+  const [pendingPayouts, setPendingPayouts] = useState(0);
+
+  // 获取待审核数量
+  const fetchPendingCounts = useCallback(async () => {
+    try {
+      const [reviewStats, payoutStats] = await Promise.all([
+        reviewApi.getStats(),
+        payoutApi.getStats(),
+      ]);
+      setPendingReviews(reviewStats.pending || 0);
+      setPendingPayouts(payoutStats.pending?.count || 0);
+    } catch (error) {
+      // 静默失败，不影响用户体验
+      console.error('获取待审核数量失败:', error);
+    }
+  }, []);
+
+  // 轮询待审核数量
+  useEffect(() => {
+    // 初始加载
+    fetchPendingCounts();
+
+    // 设置轮询
+    const interval = setInterval(fetchPendingCounts, POLL_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [fetchPendingCounts]);
+
+  // 动态生成菜单项（带 Badge）
+  const menuItems = [
+    { key: 'dashboard', icon: <DashboardOutlined />, label: '仪表盘' },
+    { key: 'quests', icon: <FileTextOutlined />, label: '任务管理' },
+    {
+      key: 'reviews',
+      icon: <AuditOutlined />,
+      label: (
+        <span>
+          截图审核
+          {pendingReviews > 0 && (
+            <Badge
+              count={pendingReviews}
+              size="small"
+              style={{ marginLeft: 8 }}
+            />
+          )}
+        </span>
+      ),
+    },
+    { key: 'tutorials', icon: <ReadOutlined />, label: '教程管理' },
+    { key: 'users', icon: <UserOutlined />, label: '用户管理' },
+    { key: 'rewards', icon: <GiftOutlined />, label: '奖励记录' },
+    {
+      key: 'payouts',
+      icon: <DollarOutlined />,
+      label: (
+        <span>
+          提现审核
+          {pendingPayouts > 0 && (
+            <Badge
+              count={pendingPayouts}
+              size="small"
+              style={{ marginLeft: 8 }}
+            />
+          )}
+        </span>
+      ),
+    },
+    { key: 'settings', icon: <SettingOutlined />, label: '系统设置' },
+  ];
+
+  // 读取站点名称配置
+  useEffect(() => {
+    const loadSiteName = () => {
+      const systemConfig = JSON.parse(localStorage.getItem('admin_system_config') || '{}');
+      if (systemConfig.siteName) {
+        setSiteName(systemConfig.siteName);
+        document.title = `${systemConfig.siteName} - 管理后台`;
+      }
+    };
+
+    // 初始加载
+    loadSiteName();
+
+    // 监听配置更新事件
+    const handleConfigUpdate = (event) => {
+      if (event.detail?.siteName) {
+        setSiteName(event.detail.siteName);
+      }
+    };
+
+    window.addEventListener('adminConfigUpdated', handleConfigUpdate);
+
+    return () => {
+      window.removeEventListener('adminConfigUpdated', handleConfigUpdate);
+    };
+  }, []);
 
   const userMenuItems = [
     {
@@ -43,7 +134,7 @@ export default function AdminLayout({ children, currentPage, onPageChange, user,
     <Layout style={{ minHeight: '100vh' }}>
       <Sider trigger={null} collapsible collapsed={collapsed} theme="dark">
         <div style={styles.logo}>
-          {collapsed ? 'QW' : 'Quest Wall'}
+          {collapsed ? siteName.substring(0, 2).toUpperCase() : siteName}
         </div>
         <Menu
           theme="dark"

@@ -206,16 +206,31 @@ export default function Reviews() {
         // 兼容单图和多图
         const imgList = images || (record.proofImage ? [record.proofImage] : []);
         if (imgList.length === 0) return '-';
+
+        // 获取后端 API 基础 URL（用于补全相对路径）
+        const apiBase = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+
+        // 处理图片 URL（补全相对路径）
+        const getFullUrl = (url) => {
+          if (!url) return '';
+          if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+          }
+          // 相对路径补全
+          return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+        };
+
         return (
           <Image.PreviewGroup>
             <Space>
               {imgList.slice(0, 3).map((url, idx) => (
                 <Image
                   key={idx}
-                  src={url}
+                  src={getFullUrl(url)}
                   width={40}
                   height={40}
                   style={{ objectFit: 'cover', borderRadius: 4 }}
+                  fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgesAAvdcgRBDT1IAAAAASUVORK5CYII="
                 />
               ))}
               {imgList.length > 3 && <Text type="secondary">+{imgList.length - 3}</Text>}
@@ -464,20 +479,30 @@ export default function Reviews() {
             <div style={{ marginTop: 16 }}>
               <Text strong>截图证明：</Text>
               <div style={{ marginTop: 8 }}>
-                <Image.PreviewGroup>
-                  <Space wrap>
-                    {(currentReview.proofImages || (currentReview.proofImage ? [currentReview.proofImage] : [])).map(
-                      (url, idx) => (
-                        <Image
-                          key={idx}
-                          src={url}
-                          width={200}
-                          style={{ borderRadius: 8 }}
-                        />
-                      )
-                    )}
-                  </Space>
-                </Image.PreviewGroup>
+                {(() => {
+                  const imgList = currentReview.proofImages || (currentReview.proofImage ? [currentReview.proofImage] : []);
+                  const apiBase = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+                  const getFullUrl = (url) => {
+                    if (!url) return '';
+                    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+                    return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+                  };
+                  return (
+                    <Image.PreviewGroup>
+                      <Space wrap>
+                        {imgList.map((url, idx) => (
+                          <Image
+                            key={idx}
+                            src={getFullUrl(url)}
+                            width={200}
+                            style={{ borderRadius: 8 }}
+                            fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgesAAvdcgRBDT1IAAAAASUVORK5CYII="
+                          />
+                        ))}
+                      </Space>
+                    </Image.PreviewGroup>
+                  );
+                })()}
               </div>
             </div>
 

@@ -303,9 +303,10 @@ export class QuestsService {
       };
     }
 
-    // 只有 CLAIMED、VERIFIED 或 REJECTED 状态可以提交验证
-    // REJECTED 状态允许用户重新提交截图
-    if (action.status !== ActionStatus.CLAIMED && action.status !== ActionStatus.VERIFIED && action.status !== ActionStatus.REJECTED) {
+    // 只有 CLAIMED、VERIFIED、SUBMITTED 或 REJECTED 状态可以提交验证
+    // REJECTED 和 SUBMITTED 状态允许用户重新提交截图
+    const allowedStatuses = [ActionStatus.CLAIMED, ActionStatus.VERIFIED, ActionStatus.SUBMITTED, ActionStatus.REJECTED];
+    if (!allowedStatuses.includes(action.status)) {
       return {
         success: false,
         message: `任务当前状态: ${action.status}，无法提交`,

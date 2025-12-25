@@ -124,6 +124,7 @@ export const blacklistApi = {
 // 统计数据
 export const statsApi = {
   getDashboard: () => request('/admin/stats/dashboard'),
+  getTrends: (days = 7) => request(`/admin/stats/trends?days=${days}`),
   getQuestStats: (questId) => request(`/admin/stats/quests/${questId}`),
 };
 
@@ -277,6 +278,33 @@ export const tutorialApi = {
     }),
 };
 
+// 系统配置管理
+export const configApi = {
+  // 获取所有配置
+  getAll: () => request('/admin/configs'),
+
+  // 保存签到配置
+  saveCheckIn: (data) =>
+    request('/admin/configs/checkin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 保存邀请配置
+  saveInvite: (data) =>
+    request('/admin/configs/invite', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 保存系统配置
+  saveSystem: (data) =>
+    request('/admin/configs/system', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
 export default {
   auth: authApi,
   quest: questApi,
@@ -289,4 +317,5 @@ export default {
   upload: uploadApi,
   tutorial: tutorialApi,
   review: reviewApi,
+  config: configApi,
 };

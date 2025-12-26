@@ -19,7 +19,7 @@ export class InviteController {
   @Get('status')
   @UseGuards(JwtAuthGuard)
   async getStatus(@Request() req) {
-    const userId = BigInt(req.user?.userId || req.user?.tg_id || 1);
+    const userId = BigInt(req.user?.id || req.user?.userId || 1);
     return this.inviteService.getStatus(userId);
   }
 
@@ -30,7 +30,7 @@ export class InviteController {
     @Body() body: { inviteCode: string },
     @Request() req,
   ) {
-    const inviteeId = BigInt(req.user?.userId || req.user?.tg_id || 1);
+    const inviteeId = BigInt(req.user?.id || req.user?.userId || 1);
     // 从邀请码中提取邀请人 tgId
     const inviterTgId = body.inviteCode.replace('ref_', '');
     return this.inviteService.processInvite(inviteeId, inviterTgId);

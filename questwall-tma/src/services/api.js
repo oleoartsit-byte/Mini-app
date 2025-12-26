@@ -342,13 +342,24 @@ export function createApiService(token) {
       }
     },
 
-    // 获取交易历史
+    // 获取交易历史（只包含提现记录）
     getTransactionHistory: async (page = 1, pageSize = 20) => {
       try {
         const response = await fetch(`${API_BASE}/payout/transactions/all?page=${page}&pageSize=${pageSize}`, { headers });
         return await response.json();
       } catch (error) {
         console.error('获取交易历史失败:', error);
+        return { items: [], total: 0 };
+      }
+    },
+
+    // 获取奖励记录（签到、任务、邀请奖励）
+    getRewardHistory: async (page = 1, pageSize = 20) => {
+      try {
+        const response = await fetch(`${API_BASE}/payout/rewards/all?page=${page}&pageSize=${pageSize}`, { headers });
+        return await response.json();
+      } catch (error) {
+        console.error('获取奖励记录失败:', error);
         return { items: [], total: 0 };
       }
     },
@@ -453,17 +464,6 @@ export function createApiService(token) {
       } catch (error) {
         console.error('获取用户排名失败:', error);
         return { rank: 0, points: 0, quests: 0 };
-      }
-    },
-
-    // 获取奖励历史
-    getRewardHistory: async () => {
-      try {
-        const response = await fetch(`${API_BASE}/rewards`, { headers });
-        return await response.json();
-      } catch (error) {
-        console.error('获取奖励历史失败:', error);
-        return { items: [], total: 0 };
       }
     },
 

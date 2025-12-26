@@ -19,7 +19,7 @@ export class CheckInController {
   @Get('status')
   @UseGuards(JwtAuthGuard)
   async getStatus(@Request() req, @Query('tz') tz?: string) {
-    const userId = BigInt(req.user?.userId || req.user?.tg_id || 1);
+    const userId = BigInt(req.user?.id || req.user?.userId || 1);
     const timezoneOffset = parseInt(tz) || 0;
     return this.checkInService.getStatus(userId, timezoneOffset);
   }
@@ -29,7 +29,7 @@ export class CheckInController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async checkIn(@Request() req, @Body() body?: { timezoneOffset?: number }) {
-    const userId = BigInt(req.user?.userId || req.user?.tg_id || 1);
+    const userId = BigInt(req.user?.id || req.user?.userId || 1);
     const timezoneOffset = body?.timezoneOffset || 0;
     return this.checkInService.checkIn(userId, timezoneOffset);
   }
@@ -39,7 +39,7 @@ export class CheckInController {
   @Post('makeup')
   @UseGuards(JwtAuthGuard)
   async makeup(@Body() body: { date: string; timezoneOffset?: number }, @Request() req) {
-    const userId = BigInt(req.user?.userId || req.user?.tg_id || 1);
+    const userId = BigInt(req.user?.id || req.user?.userId || 1);
     const timezoneOffset = body.timezoneOffset || 0;
     return this.checkInService.makeup(userId, body.date, timezoneOffset);
   }

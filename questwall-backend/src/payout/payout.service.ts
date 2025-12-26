@@ -228,11 +228,46 @@ export class PayoutService {
     };
   }
 
-  // 获取交易历史（包括奖励和提现）
+  // 获取交易历史（只包含提现记录）
   async getTransactionHistory(userId: bigint, page = 1, pageSize = 20) {
     const skip = (page - 1) * pageSize;
 
-    // 获取奖励记录
+    // 获取提现记录
+    const payouts = await this.prisma.payout.findMany({
+      where: { beneficiaryId: userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 交易历史只包含提现记录
+    const transactions = payouts.map((p) => ({
+      id: `payout_${p.id}`,
+      type: 'PAYOUT' as const,
+      asset: 'USDT',
+      amount: parseFloat(p.amount.toString()),
+      direction: 'OUT' as const,
+      description: '提现',
+      status: p.status,
+      txHash: p.txHash,
+      createdAt: p.createdAt,
+    }));
+
+    // 分页
+    const paginatedTransactions = transactions.slice(skip, skip + pageSize);
+
+    return {
+      items: paginatedTransactions,
+      page,
+      pageSize,
+      total: transactions.length,
+      totalPages: Math.ceil(transactions.length / pageSize),
+    };
+  }
+
+  // 获取奖励记录（签到、任务、邀请奖励）
+  async getRewardHistory(userId: bigint, page = 1, pageSize = 20) {
+    const skip = (page - 1) * pageSize;
+
+    // 获取任务奖励记录
     const rewards = await this.prisma.reward.findMany({
       where: { userId, status: 'COMPLETED' },
       include: {
@@ -261,77 +296,56 @@ export class PayoutService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // 获取提现记录
-    const payouts = await this.prisma.payout.findMany({
-      where: { beneficiaryId: userId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    // 合并所有记录
-    const transactions = [
+    // 合并所有奖励记录
+    const allRewards = [
       ...rewards.map((r) => ({
         id: `reward_${r.id}`,
-        type: 'REWARD' as const,
-        asset: r.type,
+        type: 'quest' as const,
+        title: `任务奖励: ${r.quest?.title || '未知任务'}`,
         amount: parseFloat(r.amount.toString()),
-        direction: 'IN' as const,
-        description: `任务奖励: ${r.quest?.title || '未知任务'}`,
+        currency: r.type,
         createdAt: r.createdAt,
       })),
       ...checkIns.map((c) => ({
         id: `checkin_${c.id}`,
-        type: 'CHECKIN' as const,
-        asset: 'USDT',
+        type: 'checkin' as const,
+        title: `签到奖励 ${new Date(c.checkedAt).toLocaleDateString('zh-CN')}`,
         amount: c.points,
-        direction: 'IN' as const,
-        description: c.day > 0 ? `签到第 ${c.day} 天` : '补签',
+        currency: 'USDT',
         createdAt: c.checkedAt,
       })),
       ...invitesAsInviter.map((i) => ({
         id: `invite_${i.id}`,
-        type: 'INVITE' as const,
-        asset: 'USDT',
+        type: 'invite' as const,
+        title: '邀请好友奖励',
         amount: parseFloat(i.bonus.toString()),
-        direction: 'IN' as const,
-        description: '邀请好友奖励',
+        currency: 'USDT',
         createdAt: i.createdAt,
       })),
       ...invitesAsInvitee.map((i) => ({
         id: `invitee_${i.id}`,
-        type: 'INVITE' as const,
-        asset: 'USDT',
+        type: 'invite' as const,
+        title: '受邀注册奖励',
         amount: parseFloat(i.inviteeBonus.toString()),
-        direction: 'IN' as const,
-        description: '受邀注册奖励',
+        currency: 'USDT',
         createdAt: i.createdAt,
-      })),
-      ...payouts.map((p) => ({
-        id: `payout_${p.id}`,
-        type: 'PAYOUT' as const,
-        asset: 'USDT',
-        amount: parseFloat(p.amount.toString()),
-        direction: 'OUT' as const,
-        description: '提现',
-        status: p.status,
-        txHash: p.txHash,
-        createdAt: p.createdAt,
       })),
     ];
 
     // 按时间排序
-    transactions.sort(
+    allRewards.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
     // 分页
-    const paginatedTransactions = transactions.slice(skip, skip + pageSize);
+    const paginatedRewards = allRewards.slice(skip, skip + pageSize);
 
     return {
-      items: paginatedTransactions,
+      items: paginatedRewards,
       page,
       pageSize,
-      total: transactions.length,
-      totalPages: Math.ceil(transactions.length / pageSize),
+      total: allRewards.length,
+      totalPages: Math.ceil(allRewards.length / pageSize),
     };
   }
 

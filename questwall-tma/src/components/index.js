@@ -32,6 +32,7 @@ export { PullToRefresh } from './PullToRefresh';
 export { QuestFilter } from './QuestFilter';
 export { Leaderboard } from './Leaderboard';
 export { TransactionHistory } from './TransactionHistory';
+export { RewardHistory } from './RewardHistory';
 export { ThemeSelector } from './ThemeSelector';
 export { LanguageSelector } from './LanguageSelector';
 export { WithdrawModal } from './WithdrawModal';

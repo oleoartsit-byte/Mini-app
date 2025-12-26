@@ -399,8 +399,8 @@ export function ProfilePage({
         </div>
         <div style={styles.statCard}>
           <div style={styles.statIcon}><IconFire size={24} color="#ff6b35" /></div>
-          <p style={styles.statValue}>{checkInData?.streak || 0}</p>
-          <p style={styles.statLabel}>{t ? t('profile.checkInDays') : '连续签到'}</p>
+          <p style={styles.statValue}>{checkInData?.totalCheckIns || 0}</p>
+          <p style={styles.statLabel}>{t ? t('profile.checkInDays') : '签到天数'}</p>
         </div>
         <div style={styles.statCard}>
           <div style={styles.statIcon}><IconUsers size={24} color="#bf5fff" /></div>

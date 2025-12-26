@@ -17,13 +17,13 @@ export class WalletController {
 
   @Post('connect/start')
   startConnect(@Request() req) {
-    const userId = BigInt(req.user?.tg_id || 1);
+    const userId = BigInt(req.user?.id || req.user?.userId || 1);
     return this.walletService.startConnect(userId);
   }
 
   @Post('tx/prepare')
   prepareTx(@Body() prepareTxDto: any, @Request() req) {
-    const userId = BigInt(req.user?.tg_id || 1);
+    const userId = BigInt(req.user?.id || req.user?.userId || 1);
     return this.walletService.prepareTx(userId, prepareTxDto);
   }
 

@@ -38,7 +38,7 @@ const INVITE_REWARD = 10;
 const BOT_USERNAME = 'questwall_test_bot';
 
 export function App() {
-  const { tg, user, initData } = useTelegram();
+  const { tg, user, initData, startParam } = useTelegram();
   const [quests, setQuests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeQuest, setActiveQuest] = useState(null);
@@ -118,6 +118,7 @@ export function App() {
   const [checkInData, setCheckInData] = useState({
     lastCheckIn: null,
     streak: 0,
+    totalCheckIns: 0,
     todayChecked: false,
     checkInHistory: []
   });
@@ -160,6 +161,7 @@ export function App() {
           setCheckInData({
             lastCheckIn: status.lastCheckIn,
             streak: status.streak || 0,
+            totalCheckIns: status.totalCheckIns || 0,
             todayChecked: status.todayChecked || false,
             checkInHistory: status.checkInHistory || []
           });
@@ -219,15 +221,15 @@ export function App() {
   }, [authToken]);
 
   // 保存邀请码，等认证后处理
-  const [pendingInviteCode, setPendingInviteCode] = useState(() => {
-    // 检查 URL 参数
-    const urlParams = new URLSearchParams(window.location.search);
-    const startParam = urlParams.get('start_param') || urlParams.get('tgWebAppStartParam');
+  const [pendingInviteCode, setPendingInviteCode] = useState(null);
+
+  // 当 startParam 变化时更新 pendingInviteCode
+  useEffect(() => {
     if (startParam && startParam.startsWith('ref_')) {
-      return startParam;
+      console.log('检测到邀请码:', startParam);
+      setPendingInviteCode(startParam);
     }
-    return null;
-  });
+  }, [startParam]);
 
   // 处理邀请（需要认证后调用后端 API）
   useEffect(() => {
@@ -378,6 +380,7 @@ export function App() {
         setCheckInData(prev => ({
           lastCheckIn: new Date().toISOString(),
           streak: result.streak || prev.streak + 1,
+          totalCheckIns: prev.totalCheckIns + 1,
           todayChecked: true,
           checkInHistory: [...(prev.checkInHistory || []), todayStr]
         }));
@@ -425,9 +428,10 @@ export function App() {
     try {
       const result = await api.makeupCheckIn(dateStr);
       if (result.success) {
-        // 更新签到历史
+        // 更新签到历史和累计天数
         setCheckInData(prev => ({
           ...prev,
+          totalCheckIns: prev.totalCheckIns + 1,
           checkInHistory: [...(prev.checkInHistory || []), dateStr]
         }));
 
@@ -843,9 +847,9 @@ export function App() {
               <Leaderboard currentUser={user} wallet={wallet} api={api} t={t} />
             </div>
 
-            {/* 交易历史 */}
+            {/* 交易历史（提现记录） */}
             <div style={{ marginTop: 16, paddingBottom: 20 }}>
-              <TransactionHistory api={api} />
+              <TransactionHistory api={api} t={t} />
             </div>
           </>
         );

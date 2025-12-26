@@ -223,11 +223,21 @@ export function App() {
   // 保存邀请码，等认证后处理
   const [pendingInviteCode, setPendingInviteCode] = useState(null);
 
-  // 当 startParam 变化时更新 pendingInviteCode
+  // 当 startParam 变化时更新 pendingInviteCode（优先从 Telegram startParam，其次从 URL 参数）
   useEffect(() => {
+    // 1. 优先检查 Telegram 的 startParam
     if (startParam && startParam.startsWith('ref_')) {
-      console.log('检测到邀请码:', startParam);
+      console.log('检测到邀请码 (Telegram startParam):', startParam);
       setPendingInviteCode(startParam);
+      return;
+    }
+
+    // 2. 检查 URL 参数（从 Bot 深度链接跳转过来时）
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get('ref');
+    if (refParam && refParam.startsWith('ref_')) {
+      console.log('检测到邀请码 (URL ref):', refParam);
+      setPendingInviteCode(refParam);
     }
   }, [startParam]);
 
@@ -396,13 +406,14 @@ export function App() {
           }));
         }
 
-        showToast(`签到成功！连续 ${result.streak || checkInData.streak + 1} 天，+${result.reward || 10} Stars`, 'stars');
+        const successMsg = t ? t('checkIn.checkInSuccess', { streak: result.streak || checkInData.streak + 1, reward: result.reward || 10 }) : `Check-in success! ${result.streak || checkInData.streak + 1} days streak, +${result.reward || 10} Stars`;
+        showToast(successMsg, 'stars');
       } else {
-        showToast(result.message || '签到失败', 'warning');
+        showToast(result.message || (t ? t('error.unknown') : 'Check-in failed'), 'warning');
       }
     } catch (error) {
       console.error('签到失败:', error);
-      showToast('签到失败，请重试', 'warning');
+      showToast(t ? t('error.network') : 'Check-in failed, please retry', 'warning');
     } finally {
       setCheckInLoading(false);
     }
@@ -414,13 +425,13 @@ export function App() {
 
     // 检查是否有足够的 Stars
     if ((wallet.balances.stars || 0) < cost) {
-      showToast(`Stars 不足！需要 ${cost} Stars`, 'warning');
+      showToast(t ? t('rewards.insufficientBalance') : `Insufficient Stars! Need ${cost} Stars`, 'warning');
       return;
     }
 
     // 检查是否已经签到过
     if (checkInData.checkInHistory?.includes(dateStr)) {
-      showToast('该日期已签到', 'warning');
+      showToast(t ? t('checkIn.alreadyChecked') : 'Already checked in on this date', 'warning');
       return;
     }
 
@@ -445,19 +456,20 @@ export function App() {
           }
         }));
 
-        showToast(`补签成功！消耗 ${result.cost || cost} Stars，获得 ${result.reward || 10} Stars`, 'stars');
+        const makeupMsg = t ? t('checkIn.makeupSuccess', { cost: result.cost || cost, reward: result.reward || 10 }) : `Make up success! Cost ${result.cost || cost} Stars, got ${result.reward || 10} Stars`;
+        showToast(makeupMsg, 'stars');
       } else {
-        showToast(result.message || '补签失败', 'warning');
+        showToast(result.message || (t ? t('error.unknown') : 'Make up failed'), 'warning');
       }
     } catch (error) {
       console.error('补签失败:', error);
-      showToast('补签失败，请重试', 'warning');
+      showToast(t ? t('error.network') : 'Make up failed, please retry', 'warning');
     } finally {
       setCheckInLoading(false);
     }
   };
 
-  // 生成邀请链接
+  // 生成邀请链接（使用 Bot 深度链接格式）
   const getInviteLink = () => {
     const userId = user?.id || 'dev_user';
     return `https://t.me/${BOT_USERNAME}?start=ref_${userId}`;

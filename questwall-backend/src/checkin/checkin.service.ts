@@ -145,12 +145,24 @@ export class CheckInService {
     }
 
     // 今天的奖励
-    const dayIndex = streak % 7;
-    const todayReward = config.dailyRewards[dayIndex];
+    // 如果今天还没签到，显示签到后会获得的奖励（第 streak+1 天 = dailyRewards[streak % 7]）
+    // 如果今天已签到，显示今天已获得的奖励（第 streak 天 = dailyRewards[(streak-1) % 7]）
+    let todayReward: number;
+    if (todayCheckIn) {
+      // 今天已签到，显示今天获得的奖励
+      todayReward = config.dailyRewards[(streak - 1) % 7];
+    } else {
+      // 今天还没签到，显示签到后会获得的奖励
+      todayReward = config.dailyRewards[streak % 7];
+    }
+
+    // 获取用户总签到天数
+    const totalCheckIns = checkIns.length;
 
     return {
       todayChecked: !!todayCheckIn,
       streak,
+      totalCheckIns,
       todayReward,
       recentDays,
       checkInHistory: recentDays.filter(d => d.isChecked).map(d => d.date),

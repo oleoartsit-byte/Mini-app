@@ -97,6 +97,12 @@ export const userApi = {
 
   // 获取用户已完成的任务列表
   getCompletedQuests: (id) => request(`/admin/users/${id}/completed-quests`),
+
+  // 删除用户
+  delete: (id) =>
+    request(`/admin/users/${id}`, {
+      method: 'DELETE',
+    }),
 };
 
 // 黑名单管理

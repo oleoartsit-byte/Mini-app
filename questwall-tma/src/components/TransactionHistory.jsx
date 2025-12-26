@@ -196,7 +196,7 @@ export function TransactionHistory({ api, t }) {
         <div style={styles.header}>
           <h3 style={styles.title}>
             <IconHistory size={18} color="#00e5ff" />
-            <span>{t ? t('transaction.history') : '交易历史'}</span>
+            <span>交易历史</span>
           </h3>
         </div>
         <div style={styles.listCard}>
@@ -214,7 +214,7 @@ export function TransactionHistory({ api, t }) {
         <div style={styles.header}>
           <h3 style={styles.title}>
             <IconHistory size={18} color="#00e5ff" />
-            <span>{t ? t('transaction.history') : '交易历史'}</span>
+            <span>交易历史</span>
           </h3>
         </div>
         <div style={styles.listCard}>

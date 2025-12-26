@@ -131,6 +131,17 @@ export default function Users() {
     setBlacklistModalVisible(true);
   };
 
+  // 删除用户
+  const handleDeleteUser = async (user) => {
+    try {
+      await userApi.delete(user.id);
+      message.success('用户已删除');
+      loadUsers(pagination.current, pagination.pageSize, searchText);
+    } catch (error) {
+      message.error(error.message || '删除失败');
+    }
+  };
+
   // 添加到黑名单
   const handleAddBlacklist = async () => {
     try {
@@ -202,7 +213,7 @@ export default function Users() {
     },
     {
       title: '操作',
-      width: 150,
+      width: 200,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -222,6 +233,23 @@ export default function Users() {
           >
             拉黑
           </Button>
+          <Popconfirm
+            title="确认删除"
+            description="确定要删除该用户吗？此操作不可恢复！"
+            onConfirm={() => handleDeleteUser(record)}
+            okText="确认"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+            >
+              删除
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },

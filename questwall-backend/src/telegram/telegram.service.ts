@@ -1,6 +1,67 @@
 import { Injectable } from '@nestjs/common';
 
-// 消息模板
+// 多语言消息模板
+const I18N_MESSAGES = {
+  // 中文
+  zh: {
+    WELCOME: (userName: string) =>
+      `🎉 *欢迎加入 Quest Wall！*\n\n` +
+      `你好，${userName}！\n\n` +
+      `🎯 完成任务赚取奖励\n` +
+      `📅 每日签到领取 Stars\n` +
+      `👥 邀请好友获得奖励\n\n` +
+      `点击下方按钮开始你的任务之旅吧！`,
+    START_BUTTON: '🎯 开始做任务',
+    INVITE_SUCCESS: (inviteeName: string, reward: number) =>
+      `👥 *邀请成功！*\n\n` +
+      `🎊 您邀请的好友 ${inviteeName} 已注册\n` +
+      `⭐ 获得奖励：+${reward} Stars\n\n` +
+      `继续邀请好友赚取更多奖励！`,
+  },
+  // 英文（默认）
+  en: {
+    WELCOME: (userName: string) =>
+      `🎉 *Welcome to Quest Wall!*\n\n` +
+      `Hello, ${userName}!\n\n` +
+      `🎯 Complete quests to earn rewards\n` +
+      `📅 Daily check-in to get Stars\n` +
+      `👥 Invite friends for bonuses\n\n` +
+      `Click the button below to start your quest journey!`,
+    START_BUTTON: '🎯 Start Quests',
+    INVITE_SUCCESS: (inviteeName: string, reward: number) =>
+      `👥 *Invite Success!*\n\n` +
+      `🎊 Your friend ${inviteeName} has registered\n` +
+      `⭐ Reward: +${reward} Stars\n\n` +
+      `Keep inviting friends to earn more rewards!`,
+  },
+  // 俄语
+  ru: {
+    WELCOME: (userName: string) =>
+      `🎉 *Добро пожаловать в Quest Wall!*\n\n` +
+      `Привет, ${userName}!\n\n` +
+      `🎯 Выполняйте задания и получайте награды\n` +
+      `📅 Ежедневная отметка для получения Stars\n` +
+      `👥 Приглашайте друзей за бонусы\n\n` +
+      `Нажмите кнопку ниже, чтобы начать!`,
+    START_BUTTON: '🎯 Начать задания',
+    INVITE_SUCCESS: (inviteeName: string, reward: number) =>
+      `👥 *Приглашение успешно!*\n\n` +
+      `🎊 Ваш друг ${inviteeName} зарегистрировался\n` +
+      `⭐ Награда: +${reward} Stars\n\n` +
+      `Продолжайте приглашать друзей!`,
+  },
+};
+
+// 根据 language_code 获取语言
+function getLocale(languageCode?: string): 'zh' | 'en' | 'ru' {
+  if (!languageCode) return 'en';
+  const code = languageCode.toLowerCase();
+  if (code.startsWith('zh')) return 'zh'; // zh, zh-hans, zh-hant, zh-cn, zh-tw
+  if (code.startsWith('ru')) return 'ru'; // ru, ru-ru
+  return 'en'; // 默认英文
+}
+
+// 消息模板（保持向后兼容）
 const MESSAGE_TEMPLATES = {
   QUEST_COMPLETED: (questTitle: string, usdtAmount: number, points: number) =>
     `🎉 *任务完成！*\n\n` +
@@ -231,11 +292,15 @@ export class TelegramService {
 
   /**
    * 发送带按钮的消息
+   * 支持三种按钮类型：
+   * - url: 普通链接（在浏览器打开）
+   * - web_app: Mini App 链接（在 Telegram 内打开，可获取 initData）
+   * - callback_data: 回调按钮
    */
   async sendMessageWithButtons(
     chatId: number | bigint | string,
     text: string,
-    buttons: Array<{ text: string; url?: string; callback_data?: string }[]>
+    buttons: Array<{ text: string; url?: string; web_app?: { url: string }; callback_data?: string }[]>
   ): Promise<{ success: boolean; messageId?: number; error?: string }> {
     return this.sendMessage(chatId, text, {
       replyMarkup: {
@@ -424,5 +489,92 @@ export class TelegramService {
       [{ text: '💰 查看余额', url: 'https://t.me/questwall_test_bot/app' }],
     ]);
     return result.success;
+  }
+
+  // ==================== Bot 命令处理 ====================
+
+  /**
+   * 处理 /start 命令（带邀请码）
+   * 发送欢迎消息并引导用户打开 Mini App（携带邀请码）
+   * 使用 web_app 按钮类型，确保在 Telegram 内打开并获取 initData
+   * 支持多语言：根据用户的 language_code 发送对应语言的消息
+   */
+  async handleStartCommand(
+    chatId: number | bigint,
+    userName: string,
+    startParam?: string,
+    languageCode?: string
+  ): Promise<boolean> {
+    const miniAppUrl = process.env.MINIAPP_URL || 'https://miniapp.tgyoumi.com';
+
+    // 如果有邀请码，构建带参数的 Mini App URL
+    let appUrl = miniAppUrl;
+    if (startParam && startParam.startsWith('ref_')) {
+      // 将邀请码作为 URL 参数传递给 Mini App
+      appUrl = `${miniAppUrl}?ref=${startParam}`;
+    }
+
+    // 根据用户语言获取对应的消息模板
+    const locale = getLocale(languageCode);
+    const messages = I18N_MESSAGES[locale];
+
+    console.log(`📱 handleStartCommand: chatId=${chatId}, userName=${userName}, startParam=${startParam}, lang=${languageCode} -> ${locale}`);
+    console.log(`📱 Mini App URL: ${appUrl}`);
+
+    const message = messages.WELCOME(userName);
+    const buttonText = messages.START_BUTTON;
+
+    // 使用 web_app 类型按钮，这样会在 Telegram 内打开 Mini App
+    // 并且 Mini App 可以获取到 initData
+    const result = await this.sendMessageWithButtons(chatId, message, [
+      [{ text: buttonText, web_app: { url: appUrl } }],
+    ]);
+
+    return result.success;
+  }
+
+  /**
+   * 设置 Webhook URL
+   */
+  async setWebhook(url: string): Promise<{ success: boolean; description?: string }> {
+    try {
+      const response = await fetch(`${this.apiBase}${this.botToken}/setWebhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await response.json();
+      return { success: data.ok, description: data.description };
+    } catch (error) {
+      return { success: false, description: error.message };
+    }
+  }
+
+  /**
+   * 删除 Webhook
+   */
+  async deleteWebhook(): Promise<{ success: boolean; description?: string }> {
+    try {
+      const response = await fetch(`${this.apiBase}${this.botToken}/deleteWebhook`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      return { success: data.ok, description: data.description };
+    } catch (error) {
+      return { success: false, description: error.message };
+    }
+  }
+
+  /**
+   * 获取 Webhook 信息
+   */
+  async getWebhookInfo(): Promise<any> {
+    try {
+      const response = await fetch(`${this.apiBase}${this.botToken}/getWebhookInfo`);
+      const data = await response.json();
+      return data.result;
+    } catch (error) {
+      return null;
+    }
   }
 }

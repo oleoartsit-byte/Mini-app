@@ -230,7 +230,7 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
     if (!quest || proofImages.length === 0) return;
     setIsLoading(true);
     setStep('verifying');
-    setVerifyMessage('正在提交...');
+    setVerifyMessage(t ? t('quest.verify.submitting') : 'Submitting...');
 
     try {
       // 提交多张图片URL和推文链接
@@ -240,24 +240,24 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
       if (result.requiresTwitterBind) {
         // 需要绑定 Twitter
         setStep('need_bind');
-        setVerifyMessage(result.message || '请先绑定 Twitter 账号');
+        setVerifyMessage(result.message || (t ? t('quest.verify.bindTwitterFirst') : 'Please bind Twitter account first'));
       } else if (result.pendingReview) {
         // 等待人工审核
         setStep('pending_review');
-        setVerifyMessage(result.message || '截图已提交，等待审核');
+        setVerifyMessage(result.message || (t ? t('quest.verify.pendingReview') : 'Screenshot submitted, pending review'));
       } else if (result.success || result.verified || result.status === 'REWARDED') {
         setStep('success');
-        setVerifyMessage(result.message || '验证成功！奖励已发放！');
+        setVerifyMessage(result.message || (t ? t('quest.verify.rewardSuccess') : 'Verified! Reward sent!'));
         setTimeout(() => {
           onSubmit?.();
         }, 800);
       } else {
         setStep('error');
-        setVerifyMessage(result.message || '提交失败');
+        setVerifyMessage(result.message || (t ? t('quest.verify.submitFailed') : 'Submit failed'));
       }
     } catch (error) {
       setStep('error');
-      setVerifyMessage('提交失败，请稍后重试');
+      setVerifyMessage(t ? t('quest.verify.submitFailedRetry') : 'Submit failed, please try again');
     } finally {
       setIsLoading(false);
     }
@@ -268,7 +268,7 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
     if (!quest) return;
     setIsLoading(true);
     setStep('verifying');
-    setVerifyMessage('正在验证...');
+    setVerifyMessage(t ? t('quest.verify.verifying') : 'Verifying...');
 
     try {
       // Twitter 任务验证（关注/转发/评论，点赞走截图流程）
@@ -282,13 +282,13 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
 
         if (result.success || result.verified || result.status === 'REWARDED') {
           setStep('success');
-          setVerifyMessage(result.message || '验证成功！奖励已发放！');
+          setVerifyMessage(result.message || (t ? t('quest.verify.rewardSuccess') : 'Verified! Reward sent!'));
           setTimeout(() => {
             onSubmit?.();
           }, 800);
         } else {
           setStep('error');
-          setVerifyMessage(result.message || '请先完成任务后再验证');
+          setVerifyMessage(result.message || (t ? t('quest.verify.completeFirst') : 'Please complete the task first'));
         }
         return;
       }
@@ -303,17 +303,17 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
 
       if (result.isMember) {
         setStep('success');
-        setVerifyMessage('验证成功！');
+        setVerifyMessage(t ? t('quest.verify.success') : 'Verified!');
         setTimeout(() => {
           onSubmit?.();
         }, 800);
       } else {
         setStep('error');
-        setVerifyMessage(result.message || '请先完成任务后再验证');
+        setVerifyMessage(result.message || (t ? t('quest.verify.completeFirst') : 'Please complete the task first'));
       }
     } catch (error) {
       setStep('error');
-      setVerifyMessage('验证失败，请稍后重试');
+      setVerifyMessage(t ? t('quest.verify.verifyFailedRetry') : 'Verification failed, please try again');
     } finally {
       setIsLoading(false);
     }

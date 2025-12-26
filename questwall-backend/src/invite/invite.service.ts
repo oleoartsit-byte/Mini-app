@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelegramService } from '../telegram/telegram.service';
 
 // 默认邀请奖励配置（USDT）
 const DEFAULT_INVITER_REWARD = 1; // 邀请人奖励 1 USDT
@@ -25,7 +26,10 @@ const RISK_CONFIG = {
 
 @Injectable()
 export class InviteService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private telegramService: TelegramService,
+  ) {}
 
   // ==================== 风控检测 ====================
 
@@ -222,6 +226,7 @@ export class InviteService {
     });
 
     const botUsername = process.env.BOT_USERNAME || 'questwall_test_bot';
+    // 使用 Bot 深度链接格式，Bot 会处理 /start 命令并引导用户打开 Mini App
     const inviteLink = `https://t.me/${botUsername}?start=ref_${user?.tgId}`;
 
     return {
@@ -311,6 +316,13 @@ export class InviteService {
       console.log(`⏳ 新账号邀请: 被邀请人账号仅 ${inviteeRisk.accountAgeHours} 小时，奖励暂缓发放`);
     }
 
+    // 获取被邀请人信息（用于通知）
+    const invitee = await this.prisma.user.findUnique({
+      where: { id: inviteeId },
+      select: { username: true, firstName: true },
+    });
+    const inviteeName = invitee?.username || invitee?.firstName || '新用户';
+
     // 创建邀请记录（同时记录邀请人和被邀请人的奖励）
     const result = await this.prisma.$transaction(async (tx) => {
       const invite = await tx.invite.create({
@@ -328,6 +340,19 @@ export class InviteService {
         inviteeReward: actualInviteeReward,
       };
     });
+
+    // 发送 TG 通知给邀请人
+    try {
+      await this.telegramService.sendInviteSuccessNotification(
+        inviter.tgId,
+        inviteeName,
+        rewardDelayed ? 0 : result.inviterReward,
+      );
+      console.log(`📤 邀请成功通知已发送给用户 ${inviter.tgId}`);
+    } catch (error) {
+      console.error('发送邀请通知失败:', error);
+      // 通知失败不影响邀请逻辑
+    }
 
     // 根据是否延迟奖励返回不同的消息
     if (rewardDelayed) {

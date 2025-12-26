@@ -7,13 +7,13 @@ const DEFAULT_MAKEUP_COST = 20;
 const MAX_MAKEUP_DAYS = 7;
 
 export function CheckInCard({ checkInData, onCheckIn, onMakeup, t }) {
-  const { lastCheckIn, streak, todayChecked, checkInHistory = [], config } = checkInData;
+  const { lastCheckIn, streak, totalCheckIns = 0, todayChecked, checkInHistory = [], config, todayReward: backendTodayReward } = checkInData;
   const [showMakeup, setShowMakeup] = useState(false);
 
   const dailyRewards = config?.dailyRewards || DEFAULT_DAILY_REWARDS;
   const makeupCost = config?.makeupCost || DEFAULT_MAKEUP_COST;
-  const currentDay = ((streak - 1) % 7) + 1;
-  const todayReward = dailyRewards[(currentDay - 1) % 7] || 10;
+  // 优先使用后端返回的 todayReward，否则根据 streak 计算
+  const todayReward = backendTodayReward || dailyRewards[streak % 7] || dailyRewards[0] || 10;
 
   const getRecentDays = () => {
     const days = [];
@@ -274,9 +274,9 @@ export function CheckInCard({ checkInData, onCheckIn, onMakeup, t }) {
           <div style={styles.textContainer}>
             <p style={styles.title}>DAILY CHECK-IN</p>
             <p style={styles.subtitle}>
-              {streak > 0
-                ? (t ? `${t('checkIn.streak')} ${streak} ${streak === 1 ? t('checkIn.day') : t('checkIn.days')}` : `${streak} day streak`)
-                : (t ? t('checkIn.checkInBtn') : 'Start checking in')}
+              {totalCheckIns > 0
+                ? (t ? t('checkIn.totalDays', { total: totalCheckIns, streak }) : `Total ${totalCheckIns} days | Streak ${streak} days`)
+                : (t ? t('checkIn.checkInBtn') : 'Check In')}
             </p>
             {!todayChecked && (
               <div style={styles.reward}>+{todayReward} Points</div>

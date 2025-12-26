@@ -279,4 +279,82 @@ export class TelegramController {
 
     return { success: false, message: '获取频道信息失败' };
   }
+
+  // ==================== Webhook 相关 ====================
+
+  /**
+   * 设置 Webhook URL
+   */
+  @Post('webhook/set')
+  async setWebhook(@Body() body: { url: string }) {
+    const { url } = body;
+    if (!url) {
+      return { success: false, message: '缺少 webhook URL' };
+    }
+    return this.telegramService.setWebhook(url);
+  }
+
+  /**
+   * 删除 Webhook
+   */
+  @Post('webhook/delete')
+  async deleteWebhook() {
+    return this.telegramService.deleteWebhook();
+  }
+
+  /**
+   * 获取 Webhook 信息
+   */
+  @Get('webhook/info')
+  async getWebhookInfo() {
+    const info = await this.telegramService.getWebhookInfo();
+    return { success: true, info };
+  }
+}
+
+/**
+ * Bot Webhook Controller - 处理 Telegram Bot 更新
+ * 独立的 Controller，路由为 /bot/webhook
+ */
+@Controller('bot')
+export class BotWebhookController {
+  constructor(private readonly telegramService: TelegramService) {}
+
+  /**
+   * Telegram Bot Webhook 端点
+   * 接收来自 Telegram 的更新（消息、命令等）
+   */
+  @Post('webhook')
+  async handleWebhook(@Body() update: any) {
+    console.log('📥 收到 Telegram 更新:', JSON.stringify(update, null, 2));
+
+    try {
+      // 处理消息
+      if (update.message) {
+        const message = update.message;
+        const chatId = message.chat.id;
+        const text = message.text || '';
+        const user = message.from;
+        const userName = user?.first_name || user?.username || '用户';
+
+        // 处理 /start 命令
+        if (text.startsWith('/start')) {
+          // 提取 start 参数（如 /start ref_123456）
+          const parts = text.split(' ');
+          const startParam = parts.length > 1 ? parts[1] : undefined;
+          // 获取用户语言设置
+          const languageCode = user?.language_code;
+
+          console.log(`🚀 处理 /start 命令, chatId: ${chatId}, startParam: ${startParam}, lang: ${languageCode}`);
+
+          await this.telegramService.handleStartCommand(chatId, userName, startParam, languageCode);
+        }
+      }
+
+      return { ok: true };
+    } catch (error) {
+      console.error('处理 webhook 更新失败:', error);
+      return { ok: true }; // 始终返回 ok，避免 Telegram 重试
+    }
+  }
 }

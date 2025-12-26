@@ -224,6 +224,17 @@ export class AdminController {
     return this.adminService.getUserCompletedQuests(BigInt(id));
   }
 
+  @Delete('users/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '删除用户（管理员）' })
+  async deleteUser(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ) {
+    this.validateAdmin(authHeader);
+    return this.adminService.deleteUser(BigInt(id));
+  }
+
   // ==================== 奖励管理接口 ====================
 
   @Get('rewards')

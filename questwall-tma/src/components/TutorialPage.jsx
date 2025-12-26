@@ -754,12 +754,20 @@ export function TutorialPage({ api, t }) {
             }}
           >
             <div style={styles.cardHeader}>
-              <div style={styles.iconWrapper}>
-                {getTutorialMainIcon(tutorial.type)}
-                <div style={{ ...styles.typeBadge, backgroundColor: typeInfo.color }}>
-                  {typeInfo.icon}
+              {tutorial.coverImage ? (
+                <img
+                  src={tutorial.coverImage}
+                  alt={tutorial.title}
+                  style={styles.coverImage}
+                />
+              ) : (
+                <div style={styles.iconWrapper}>
+                  {getTutorialMainIcon(tutorial.type)}
+                  <div style={{ ...styles.typeBadge, backgroundColor: typeInfo.color }}>
+                    {typeInfo.icon}
+                  </div>
                 </div>
-              </div>
+              )}
               <div style={styles.cardContent}>
                 <div style={styles.tagsRow}>
                   <span style={{
@@ -792,9 +800,17 @@ export function TutorialPage({ api, t }) {
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHandle} />
             <div style={styles.modalHeader}>
-              <div style={styles.modalIcon}>
-                {getTutorialMainIcon(selectedTutorial.type)}
-              </div>
+              {selectedTutorial.coverImage ? (
+                <img
+                  src={selectedTutorial.coverImage}
+                  alt={selectedTutorial.title}
+                  style={styles.modalCoverImage}
+                />
+              ) : (
+                <div style={styles.modalIcon}>
+                  {getTutorialMainIcon(selectedTutorial.type)}
+                </div>
+              )}
               <div>
                 <h2 style={styles.modalTitle}>{selectedTutorial.title}</h2>
                 {selectedTutorial.description && (

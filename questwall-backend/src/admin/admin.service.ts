@@ -641,6 +641,45 @@ export class AdminService {
     };
   }
 
+  // 删除用户（包括所有相关数据）
+  async deleteUser(id: bigint) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    // 使用事务删除用户及其关联数据
+    await this.prisma.$transaction(async (tx) => {
+      // 1. 删除风控事件
+      await tx.riskEvent.deleteMany({ where: { userId: id } });
+
+      // 2. 删除奖励记录
+      await tx.reward.deleteMany({ where: { userId: id } });
+
+      // 3. 删除提现记录
+      await tx.payout.deleteMany({ where: { beneficiaryId: id } });
+
+      // 4. 删除行为记录（任务参与）
+      await tx.action.deleteMany({ where: { userId: id } });
+
+      // 5. 删除签到记录
+      await tx.checkIn.deleteMany({ where: { userId: id } });
+
+      // 6. 删除邀请记录（作为邀请人）
+      await tx.invite.deleteMany({ where: { inviterId: id } });
+
+      // 7. 删除邀请记录（作为被邀请人）
+      await tx.invite.deleteMany({ where: { inviteeId: id } });
+
+      // 8. 最后删除用户
+      await tx.user.delete({ where: { id } });
+    });
+
+    console.log(`🗑️ 用户已删除: ID=${id}, tgId=${user.tgId}, username=${user.username}`);
+
+    return { success: true, message: '用户已删除' };
+  }
+
   // ==================== 奖励管理 ====================
 
   async getRewards(page: number = 1, pageSize: number = 10) {

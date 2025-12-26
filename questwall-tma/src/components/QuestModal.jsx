@@ -145,10 +145,7 @@ export function QuestModal({ quest, onClose, onSubmit, api, twitterBound, twitte
   // 构建频道/群组链接
   const getTargetLink = useCallback(() => {
     if (!quest) return null;
-    // 点赞任务使用固定的推文链接（测试用，后续换成官方账号推文）
-    if (quest.type === 'like_twitter') {
-      return 'https://x.com/MoSalah/status/2003237101740130408';
-    }
+    // 优先使用后端返回的 targetUrl
     if (quest.targetUrl) return quest.targetUrl;
     if (quest.channelId) {
       if (quest.channelId.startsWith('@')) {

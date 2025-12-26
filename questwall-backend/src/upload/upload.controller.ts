@@ -4,17 +4,18 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
-  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { Request } from 'express';
+import { BunnyStorageService } from './bunny-storage.service';
 
 @ApiTags('Upload')
 @Controller('upload')
 export class UploadController {
+  constructor(private readonly bunnyStorage: BunnyStorageService) {}
+
   @Post('image')
-  @ApiOperation({ summary: '上传图片' })
+  @ApiOperation({ summary: '上传图片到 CDN' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -28,23 +29,24 @@ export class UploadController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
-  uploadImage(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  async uploadImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('请选择要上传的图片');
     }
 
-    // 构建完整的图片访问 URL
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.headers['x-forwarded-host'] || req.headers.host;
-    const baseUrl = `${protocol}://${host}`;
-    const imageUrl = `${baseUrl}/uploads/${file.filename}`;
+    try {
+      // 上传到 Bunny CDN Storage
+      const result = await this.bunnyStorage.uploadFile(file);
 
-    return {
-      success: true,
-      url: imageUrl,
-      filename: file.filename,
-      originalName: file.originalname,
-      size: file.size,
-    };
+      return {
+        success: true,
+        url: result.url,
+        filename: result.filename,
+        originalName: file.originalname,
+        size: file.size,
+      };
+    } catch (error) {
+      throw new BadRequestException(`图片上传失败: ${error.message}`);
+    }
   }
 }

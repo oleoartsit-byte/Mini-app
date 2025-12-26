@@ -1475,11 +1475,13 @@ export class AdminService {
 
     // 发送通知
     if (action.user?.tgId) {
+      const usdtAmount = Number(action.quest.rewardAmount);
+      const points = action.quest.rewardPoints || Math.floor(usdtAmount * 10);
       this.telegramService.sendQuestCompletedNotification(
         action.user.tgId,
         action.quest.title,
-        Number(action.quest.rewardAmount),
-        action.quest.rewardType
+        usdtAmount,
+        points
       ).catch(err => console.error('发送奖励通知失败:', err));
     }
 

@@ -1,21 +1,14 @@
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { memoryStorage } from 'multer';
 import { UploadController } from './upload.controller';
+import { BunnyStorageService } from './bunny-storage.service';
 
 @Module({
   imports: [
     MulterModule.register({
-      storage: diskStorage({
-        destination: join(__dirname, '../../uploads'),
-        filename: (req, file, cb) => {
-          // 生成唯一文件名: 时间戳-随机数.扩展名
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          cb(null, `${uniqueSuffix}${ext}`);
-        },
-      }),
+      // 使用内存存储，文件会被保存到 buffer 中，然后上传到 Bunny Storage
+      storage: memoryStorage(),
       limits: {
         fileSize: 5 * 1024 * 1024, // 5MB 限制
       },
@@ -30,5 +23,7 @@ import { UploadController } from './upload.controller';
     }),
   ],
   controllers: [UploadController],
+  providers: [BunnyStorageService],
+  exports: [BunnyStorageService],
 })
 export class UploadModule {}

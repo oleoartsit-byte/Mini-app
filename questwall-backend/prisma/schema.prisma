@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -58,7 +58,7 @@ model Quest {
   status        QuestStatus @default(DRAFT)
   targetUrl     String?   @map("target_url")
   channelId     String?   @map("channel_id")
-  targetCountries String[]  @default([]) @map("target_countries") // 目标国家列表，空数组表示全球
+  targetCountries Json      @default("[]") @map("target_countries") // 目标国家列表，空数组表示全球
   stepDetails   Json?     @map("step_details") // 任务步骤详情（支持图片、视频）
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
@@ -67,6 +67,7 @@ model Quest {
   owner         User      @relation("QuestOwner", fields: [ownerId], references: [id])
   actions       Action[]
   rewards       Reward[]
+  fgOrder       FgOrder?  // FG 订单关联
 
   @@map("quests")
 }
@@ -192,7 +193,7 @@ model Tutorial {
   // 媒体资源
   coverImage    String?        @map("cover_image") // 封面图片 URL
   videoUrl      String?        @map("video_url")   // 视频 URL（YouTube/本地）
-  images        String[]       @default([])        // 图片列表（图文教程用）
+  images        Json           @default("[]")      // 图片列表（图文教程用）
   // 元数据
   icon          String         @default("📖")      // 显示图标
   sortOrder     Int            @default(0) @map("sort_order") // 排序权重
@@ -238,6 +239,37 @@ model SystemConfig {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@map("system_configs")
+}
+
+// ==================== FG 订单表 ====================
+// Famousgurus SMM Panel 订单同步
+model FgOrder {
+  id              BigInt       @id @default(autoincrement())
+  fgOrderId       Int          @unique @map("fg_order_id")    // FG 订单 ID
+  externalId      String?      @map("external_id")            // FG 外部订单 ID
+  link            String                                       // 目标链接 (Twitter/Instagram URL)
+  serviceId       Int          @map("service_id")             // FG 服务 ID
+  serviceName     String       @map("service_name")           // 服务名称
+  serviceType     String?      @map("service_type")           // 服务类型
+  quantity        Int                                          // 订单数量
+  startCount      Int          @default(0) @map("start_count") // 起始数量
+  remains         Int          @default(0)                     // 剩余数量
+  fgStatus        String       @map("fg_status")              // FG 订单状态
+  mode            String?                                      // auto/manual
+  charge          Decimal?     @db.Decimal(20, 8)             // 订单金额
+  questId         BigInt?      @unique @map("quest_id")       // 关联的 Quest ID
+  syncError       String?      @map("sync_error")             // 同步错误信息
+  lastSyncAt      DateTime     @default(now()) @map("last_sync_at")
+  fgCreatedAt     DateTime?    @map("fg_created_at")          // FG 订单创建时间
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  // 关系
+  quest           Quest?       @relation(fields: [questId], references: [id])
+
+  @@index([fgStatus])
+  @@index([serviceName])
+  @@map("fg_orders")
 }
 
 // ==================== 设备指纹表 ====================

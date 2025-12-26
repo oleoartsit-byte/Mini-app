@@ -63,11 +63,12 @@ export class QuestsService {
     const whereCondition: any = { status: QuestStatus.ACTIVE };
 
     // 如果有国家代码，过滤任务：只显示 targetCountries 为空（全球）或包含用户国家的任务
-    // 注意：Prisma 对数组字段的查询方式
+    // 注意：MySQL JSON 字段不支持 has 操作符，使用 string_contains 作为替代方案
+    // 由于 targetCountries 是 JSON 数组如 ["US", "CN"]，我们检查是否包含国家代码字符串
     if (countryCode) {
       whereCondition.OR = [
-        { targetCountries: { isEmpty: true } },  // 全球任务（空数组）
-        { targetCountries: { has: countryCode } } // 包含用户国家
+        { targetCountries: { equals: [] } },  // 全球任务（空数组）
+        { targetCountries: { string_contains: `"${countryCode}"` } } // 包含用户国家（JSON 字符串匹配）
       ];
     }
 
@@ -303,9 +304,19 @@ export class QuestsService {
       };
     }
 
-    // 只有 CLAIMED、VERIFIED、SUBMITTED 或 REJECTED 状态可以提交验证
-    // REJECTED 和 SUBMITTED 状态允许用户重新提交截图
-    const allowedStatuses = [ActionStatus.CLAIMED, ActionStatus.VERIFIED, ActionStatus.SUBMITTED, ActionStatus.REJECTED];
+    // 如果已提交待审核，不允许重复提交
+    if (action.status === ActionStatus.SUBMITTED) {
+      return {
+        success: false,
+        message: '任务已提交，正在等待审核',
+        status: action.status,
+        pendingReview: true
+      };
+    }
+
+    // 只有 CLAIMED、VERIFIED 或 REJECTED 状态可以提交验证
+    // REJECTED 状态允许用户重新提交截图
+    const allowedStatuses = [ActionStatus.CLAIMED, ActionStatus.VERIFIED, ActionStatus.REJECTED];
     if (!allowedStatuses.includes(action.status)) {
       return {
         success: false,
@@ -439,11 +450,13 @@ export class QuestsService {
           if (user.tgId) {
             const canNotify = await this.authService.canSendNotification(userId, 'reward');
             if (canNotify) {
+              const usdtAmount = Number(quest.rewardAmount);
+              const points = quest.rewardPoints || Math.floor(usdtAmount * 10);
               this.telegramService.sendQuestCompletedNotification(
                 user.tgId,
                 quest.title,
-                Number(quest.rewardAmount),
-                quest.rewardType
+                usdtAmount,
+                points
               ).catch(err => console.error('发送奖励通知失败:', err));
             }
           }
@@ -570,11 +583,13 @@ export class QuestsService {
     if (user?.tgId) {
       const canNotify = await this.authService.canSendNotification(userId, 'reward');
       if (canNotify) {
+        const usdtAmount = Number(quest.rewardAmount);
+        const points = quest.rewardPoints || Math.floor(usdtAmount * 10);
         this.telegramService.sendQuestCompletedNotification(
           user.tgId,
           quest.title,
-          Number(quest.rewardAmount),
-          quest.rewardType
+          usdtAmount,
+          points
         ).catch(err => {
           console.error('发送奖励通知失败:', err);
         });
@@ -785,11 +800,13 @@ export class QuestsService {
     if (user?.tgId) {
       const canNotify = await this.authService.canSendNotification(userId, 'reward');
       if (canNotify) {
+        const usdtAmount = Number(quest.rewardAmount);
+        const points = quest.rewardPoints || Math.floor(usdtAmount * 10);
         this.telegramService.sendQuestCompletedNotification(
           user.tgId,
           quest.title,
-          Number(quest.rewardAmount),
-          quest.rewardType
+          usdtAmount,
+          points
         ).catch(err => {
           console.error('发送任务完成通知失败:', err);
         });

@@ -111,6 +111,9 @@ export function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // 待审核任务
+  const [pendingQuests, setPendingQuests] = useState([]);
+
   // 签到数据（从后端获取）
   const [checkInData, setCheckInData] = useState({
     lastCheckIn: null,
@@ -318,6 +321,18 @@ export function App() {
       try {
         const data = await api.getQuests(locale);
         setQuests(data.items);
+
+        // 根据后端返回的 userStatus 设置已完成任务列表（以后端为准）
+        const completedFromBackend = data.items
+          .filter(q => q.userStatus === 'REWARDED')
+          .map(q => q.id);
+        setCompletedQuests(completedFromBackend);
+
+        // 设置待审核任务列表
+        const pendingFromBackend = data.items
+          .filter(q => q.userStatus === 'SUBMITTED')
+          .map(q => q.id);
+        setPendingQuests(pendingFromBackend);
       } catch (error) {
         console.error('获取任务列表失败:', error);
       } finally {
@@ -490,7 +505,9 @@ export function App() {
 
     // 统一使用 USDT 奖励
     const rewardAmount = parseFloat(activeQuest.reward.amount);
+    const questId = activeQuest.id;
 
+    // 立即更新本地状态（乐观更新）
     setWallet(prev => ({
       ...prev,
       balances: {
@@ -499,7 +516,7 @@ export function App() {
       }
     }));
 
-    setCompletedQuests(prev => [...prev, activeQuest.id]);
+    setCompletedQuests(prev => [...prev, questId]);
     setActiveQuest(null);
 
     // 显示成功动画
@@ -507,6 +524,24 @@ export function App() {
     setTimeout(() => setShowSuccess(false), 1500);
 
     showToast(`任务完成！+${rewardAmount} USDT`, 'usdt');
+
+    // 异步刷新任务列表，确保数据同步
+    try {
+      const data = await api.getQuests(locale);
+      setQuests(data.items);
+      // 从后端同步已完成任务列表
+      const completedFromBackend = data.items
+        .filter(q => q.userStatus === 'REWARDED')
+        .map(q => q.id);
+      setCompletedQuests(completedFromBackend);
+      // 同步待审核任务列表
+      const pendingFromBackend = data.items
+        .filter(q => q.userStatus === 'SUBMITTED')
+        .map(q => q.id);
+      setPendingQuests(pendingFromBackend);
+    } catch (error) {
+      console.error('刷新任务列表失败:', error);
+    }
   };
 
   // 计算总积分
@@ -544,6 +579,18 @@ export function App() {
     try {
       const data = await api.getQuests(locale);
       setQuests(data.items);
+
+      // 根据后端返回的 userStatus 更新已完成任务列表
+      const completedFromBackend = data.items
+        .filter(q => q.userStatus === 'REWARDED')
+        .map(q => q.id);
+      if (completedFromBackend.length > 0) {
+        setCompletedQuests(prev => {
+          const newCompleted = [...new Set([...prev, ...completedFromBackend])];
+          return newCompleted;
+        });
+      }
+
       setToast({
         visible: true,
         message: t ? t('common.refreshSuccess') : '刷新成功',
@@ -656,6 +703,7 @@ export function App() {
               quest={quest}
               onStart={handleStartQuest}
               isCompleted={completedQuests.includes(quest.id)}
+              isPending={pendingQuests.includes(quest.id)}
               t={t}
             />
           ))}
@@ -733,6 +781,7 @@ export function App() {
               quest={quest}
               onStart={handleStartQuest}
               isCompleted={completedQuests.includes(quest.id)}
+              isPending={pendingQuests.includes(quest.id)}
               t={t}
             />
           ))}

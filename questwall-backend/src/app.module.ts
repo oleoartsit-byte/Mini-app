@@ -20,6 +20,7 @@ import { GeoipModule } from './geoip/geoip.module';
 import { UploadModule } from './upload/upload.module';
 import { AiModule } from './ai/ai.module';
 import { TutorialsModule } from './tutorials/tutorials.module';
+import { FgModule } from './fg/fg.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { TutorialsModule } from './tutorials/tutorials.module';
     UploadModule,
     AiModule,
     TutorialsModule,
+    FgModule,
   ],
   controllers: [AppController],
   providers: [AppService],

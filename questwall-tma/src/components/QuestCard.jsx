@@ -14,6 +14,7 @@ import {
   IconDollar,
   IconStar,
   IconCheck,
+  IconClock,
 } from './icons/CyberpunkIcons';
 
 // 获取奖励信息
@@ -56,7 +57,7 @@ const getQuestTypeInfo = (type, t) => {
   return typeStyles[type] || typeStyles.default;
 };
 
-export function QuestCard({ quest, onStart, isCompleted = false, t }) {
+export function QuestCard({ quest, onStart, isCompleted = false, isPending = false, t }) {
   const [isHovered, setIsHovered] = useState(false);
   const rewardInfo = getRewardInfo(quest.reward);
   const typeInfo = getQuestTypeInfo(quest.type, t);
@@ -130,6 +131,34 @@ export function QuestCard({ quest, onStart, isCompleted = false, t }) {
       alignItems: 'center',
       gap: 6,
       border: '1px solid rgba(57, 255, 20, 0.4)',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    pendingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      backdropFilter: 'blur(2px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10,
+    },
+    pendingBadge: {
+      background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.3), rgba(255, 152, 0, 0.2))',
+      color: '#ffc107',
+      padding: '8px 20px',
+      borderRadius: 16,
+      fontSize: 12,
+      fontWeight: '700',
+      fontFamily: "'Orbitron', sans-serif",
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      border: '1px solid rgba(255, 193, 7, 0.4)',
       textTransform: 'uppercase',
       letterSpacing: 1,
     },
@@ -264,7 +293,7 @@ export function QuestCard({ quest, onStart, isCompleted = false, t }) {
   };
 
   const handleClick = () => {
-    if (!isCompleted) {
+    if (!isCompleted && !isPending) {
       onStart(quest);
     }
   };
@@ -292,6 +321,15 @@ export function QuestCard({ quest, onStart, isCompleted = false, t }) {
           <div style={styles.completedBadge}>
             <IconCheck size={14} color="#39ff14" />
             <span>{t ? t('quest.completed') : 'COMPLETED'}</span>
+          </div>
+        </div>
+      )}
+
+      {isPending && !isCompleted && (
+        <div style={styles.pendingOverlay}>
+          <div style={styles.pendingBadge}>
+            <IconClock size={14} color="#ffc107" />
+            <span>{t ? t('quest.pending') : '待审核'}</span>
           </div>
         </div>
       )}
@@ -332,14 +370,16 @@ export function QuestCard({ quest, onStart, isCompleted = false, t }) {
           <button
             style={{
               ...styles.button,
-              ...(isCompleted ? styles.buttonDisabled : {}),
+              ...((isCompleted || isPending) ? styles.buttonDisabled : {}),
             }}
             onClick={(e) => {
               e.stopPropagation();
-              if (!isCompleted) onStart(quest);
+              if (!isCompleted && !isPending) onStart(quest);
             }}
           >
-            {isCompleted ? <IconCheck size={14} color="#39ff14" /> : (t ? t('quest.start') : 'START')}
+            {isCompleted ? <IconCheck size={14} color="#39ff14" /> :
+             isPending ? <IconClock size={14} color="#ffc107" /> :
+             (t ? t('quest.start') : 'START')}
           </button>
         </div>
 

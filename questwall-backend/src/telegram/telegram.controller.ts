@@ -68,17 +68,17 @@ export class TelegramController {
     @Body() body: {
       telegramId: number;
       questTitle: string;
-      rewardAmount: number;
-      rewardType: string;
+      usdtAmount: number;
+      points: number;
     },
   ) {
-    const { telegramId, questTitle, rewardAmount, rewardType } = body;
+    const { telegramId, questTitle, usdtAmount, points } = body;
 
     const success = await this.telegramService.sendQuestCompletedNotification(
       telegramId,
       questTitle,
-      rewardAmount,
-      rewardType,
+      usdtAmount,
+      points,
     );
 
     return { success };
@@ -93,12 +93,12 @@ export class TelegramController {
       telegramId: number;
       questTitle: string;
       approved: boolean;
-      rewardAmount?: number;
-      rewardType?: string;
+      usdtAmount?: number;
+      points?: number;
       reason?: string;
     },
   ) {
-    const { telegramId, questTitle, approved, rewardAmount, rewardType, reason } = body;
+    const { telegramId, questTitle, approved, usdtAmount, points, reason } = body;
 
     let success: boolean;
 
@@ -106,8 +106,8 @@ export class TelegramController {
       success = await this.telegramService.sendQuestApprovedNotification(
         telegramId,
         questTitle,
-        rewardAmount || 0,
-        rewardType || 'STARS',
+        usdtAmount || 0,
+        points || 0,
       );
     } else {
       success = await this.telegramService.sendQuestRejectedNotification(

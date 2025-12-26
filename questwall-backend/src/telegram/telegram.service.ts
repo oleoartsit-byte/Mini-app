@@ -2,16 +2,18 @@ import { Injectable } from '@nestjs/common';
 
 // 消息模板
 const MESSAGE_TEMPLATES = {
-  QUEST_COMPLETED: (questTitle: string, reward: string) =>
+  QUEST_COMPLETED: (questTitle: string, usdtAmount: number, points: number) =>
     `🎉 *任务完成！*\n\n` +
     `✅ 任务：${questTitle}\n` +
-    `💰 奖励：${reward}\n\n` +
+    `💰 奖励：+${usdtAmount} USDT\n` +
+    `⭐ 积分：+${points} PTS\n\n` +
     `继续完成更多任务赚取奖励吧！`,
 
-  QUEST_APPROVED: (questTitle: string, reward: string) =>
+  QUEST_APPROVED: (questTitle: string, usdtAmount: number, points: number) =>
     `✨ *任务审核通过！*\n\n` +
     `📋 任务：${questTitle}\n` +
-    `💰 奖励已发放：${reward}\n\n` +
+    `💰 奖励已发放：+${usdtAmount} USDT\n` +
+    `⭐ 积分已发放：+${points} PTS\n\n` +
     `感谢您的参与！`,
 
   QUEST_REJECTED: (questTitle: string, reason: string) =>
@@ -261,11 +263,10 @@ export class TelegramService {
   async sendQuestCompletedNotification(
     telegramId: number | bigint,
     questTitle: string,
-    rewardAmount: number,
-    rewardType: string
+    usdtAmount: number,
+    points: number
   ): Promise<boolean> {
-    const reward = `+${rewardAmount} ${rewardType.toUpperCase()}`;
-    const message = MESSAGE_TEMPLATES.QUEST_COMPLETED(questTitle, reward);
+    const message = MESSAGE_TEMPLATES.QUEST_COMPLETED(questTitle, usdtAmount, points);
     const result = await this.sendMessageWithButtons(telegramId, message, [
       [{ text: '📋 查看更多任务', url: 'https://t.me/questwall_test_bot/app' }],
     ]);
@@ -278,11 +279,10 @@ export class TelegramService {
   async sendQuestApprovedNotification(
     telegramId: number | bigint,
     questTitle: string,
-    rewardAmount: number,
-    rewardType: string
+    usdtAmount: number,
+    points: number
   ): Promise<boolean> {
-    const reward = `+${rewardAmount} ${rewardType.toUpperCase()}`;
-    const message = MESSAGE_TEMPLATES.QUEST_APPROVED(questTitle, reward);
+    const message = MESSAGE_TEMPLATES.QUEST_APPROVED(questTitle, usdtAmount, points);
     const result = await this.sendMessage(telegramId, message);
     return result.success;
   }

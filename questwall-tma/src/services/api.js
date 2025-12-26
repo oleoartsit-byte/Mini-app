@@ -1,7 +1,7 @@
 // API 服务 - 连接后端
 const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:3000/api/v1'
-  : 'https://chemistry-jason-undergraduate-herbs.trycloudflare.com/api/v1';
+  : 'https://miniapp.tgyoumi.com/api/v1';
 
 export function createApiService(token) {
   const headers = {
@@ -42,7 +42,8 @@ export function createApiService(token) {
     // 获取任务列表（支持多语言）
     getQuests: async (lang = 'zh') => {
       try {
-        const response = await fetch(`${API_BASE}/quests?lang=${lang}`, { headers });
+        // 添加时间戳防止缓存
+        const response = await fetch(`${API_BASE}/quests?lang=${lang}&_t=${Date.now()}`, { headers });
         const data = await response.json();
         return {
           items: data.items.map(q => ({
